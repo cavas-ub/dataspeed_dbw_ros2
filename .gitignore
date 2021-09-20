@@ -1,0 +1,8 @@
+# Temporary files
+*~
+
+# Python
+*.py[cod]
+
+# VS Code project files
+.vscode/
