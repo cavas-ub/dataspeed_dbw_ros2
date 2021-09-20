@@ -1,0 +1,110 @@
+[dbw_fca_msgs/MiscCmd]:
+# Turn signal command enumeration
+TurnSignal cmd
+
+# Door open/close command
+DoorCmd door
+
+# Front Driver Temperature Command
+FrontTemp ft_drv_temp
+
+# Front Passenger Temperature Command
+FrontTemp ft_psg_temp
+
+# Front Fan Speed Command
+FrontFanSpeed ft_fan_seep
+
+# Front Button Command
+HvacButtonCmd max_ac
+HvacButtonCmd ac
+HvacButtonCmd ft_hvac
+HvacButtonCmd auto_md
+HvacButtonCmd recirc
+HvacButtonCmd sync
+HvacButtonCmd r_defr
+HvacButtonCmd f_defr
+
+# Front Vent Mode Command
+VentMode vent_mode
+
+# Heated Steering Wheel Command
+HvacButtonCmd heated_steering_wheel
+
+# Front Left Heated Seat Command
+HvacSeat fl_heated_seat
+
+# Front Left Vented Seat Command
+HvacSeat fl_vented_seat
+
+# Front Right Heated Seat Command
+HvacSeat fr_heated_seat
+
+# Front Right Vented Seat Command
+HvacSeat fr_vented_seat
+
+================================================================================
+MSG: dbw_fca_msgs/TurnSignal
+uint8 value
+
+uint8 NONE=0
+uint8 LEFT=1
+uint8 RIGHT=2
+uint8 HAZARD=3
+
+================================================================================
+MSG: dbw_fca_msgs/DoorCmd
+uint8 NONE=0
+
+uint8 select
+uint8 LEFT=1
+uint8 RIGHT=2
+uint8 TRUNK=3
+
+uint8 action
+uint8 OPEN=1
+uint8 CLOSE=2
+
+================================================================================
+MSG: dbw_fca_msgs/FrontTemp
+uint8 value
+
+uint8 NONE=0
+uint8 MIN=59 # DegF
+uint8 MAX=85 # DegF
+
+================================================================================
+MSG: dbw_fca_msgs/FrontFanSpeed
+uint8 value
+
+uint8 NONE=0
+uint8 MIN=1
+uint8 MAX=7
+
+================================================================================
+MSG: dbw_fca_msgs/HvacButtonCmd
+uint8 cmd
+
+uint8 NONE=0
+uint8 OFF=1
+uint8 ON=2
+
+================================================================================
+MSG: dbw_fca_msgs/VentMode
+uint8 value
+
+uint8 NONE=0
+uint8 DEFROST=1
+uint8 DEFROST_FLOOR=3
+uint8 FLOOR=5
+uint8 FLOOR_FACE=7
+uint8 FACE=9
+
+================================================================================
+MSG: dbw_fca_msgs/HvacSeat
+uint8 value
+
+uint8 NONE=0
+uint8 OFF=1
+uint8 LO=2
+uint8 HI=3
+
