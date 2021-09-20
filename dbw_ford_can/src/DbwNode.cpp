@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2018-2019, Dataspeed Inc.
+ *  Copyright (c) 2015-2019, Dataspeed Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,9 @@
  *********************************************************************/
 
 #include "DbwNode.h"
-#include <dbw_fca_can/dispatch.h>
-#include <dbw_fca_can/pedal_lut.h>
+#include <dbw_ford_can/dispatch.h>
+#include <dbw_ford_can/pedal_lut.h>
+#include <dbw_ford_can/sonar_lut.h>
 
 // Log once per unique identifier, similar to ROS_LOG_ONCE()
 #define ROS_LOG_ONCE_ID(id, level, name, ...) \
@@ -55,19 +56,36 @@
 #define ROS_ERROR_ONCE_ID(id, ...) ROS_LOG_ONCE_ID(id, ::ros::console::levels::Error, ROSCONSOLE_DEFAULT_NAME, __VA_ARGS__)
 #define ROS_FATAL_ONCE_ID(id, ...) ROS_LOG_ONCE_ID(id, ::ros::console::levels::Fatal, ROSCONSOLE_DEFAULT_NAME, __VA_ARGS__)
 
-namespace dbw_fca_can
+namespace dbw_ford_can
 {
 
 // Latest firmware versions
 PlatformMap FIRMWARE_LATEST({
-  {PlatformVersion(P_FCA_RU,  M_BPEC,  ModuleVersion(1,5,0))},
-  {PlatformVersion(P_FCA_RU,  M_TPEC,  ModuleVersion(1,5,0))},
-  {PlatformVersion(P_FCA_RU,  M_STEER, ModuleVersion(1,5,0))},
-  {PlatformVersion(P_FCA_RU,  M_SHIFT, ModuleVersion(1,5,0))},
-  {PlatformVersion(P_FCA_WK2, M_TPEC,  ModuleVersion(1,3,0))},
-  {PlatformVersion(P_FCA_WK2, M_STEER, ModuleVersion(1,3,0))},
-  {PlatformVersion(P_FCA_WK2, M_SHIFT, ModuleVersion(1,3,0))},
-  {PlatformVersion(P_FCA_WK2, M_ABS,   ModuleVersion(1,3,0))},
+  {PlatformVersion(P_FORD_CD4, M_BPEC,  ModuleVersion(2,5,0))},
+  {PlatformVersion(P_FORD_CD4, M_TPEC,  ModuleVersion(2,5,0))},
+  {PlatformVersion(P_FORD_CD4, M_STEER, ModuleVersion(2,5,0))},
+  {PlatformVersion(P_FORD_CD4, M_SHIFT, ModuleVersion(2,5,0))},
+  {PlatformVersion(P_FORD_CD5, M_BOO,   ModuleVersion(1,1,0))},
+  {PlatformVersion(P_FORD_CD5, M_TPEC,  ModuleVersion(1,1,0))},
+  {PlatformVersion(P_FORD_CD5, M_STEER, ModuleVersion(1,1,0))},
+  {PlatformVersion(P_FORD_P5,  M_TPEC,  ModuleVersion(1,4,0))},
+  {PlatformVersion(P_FORD_P5,  M_STEER, ModuleVersion(1,4,0))},
+  {PlatformVersion(P_FORD_P5,  M_SHIFT, ModuleVersion(1,4,0))},
+  {PlatformVersion(P_FORD_P5,  M_ABS,   ModuleVersion(1,4,0))},
+  {PlatformVersion(P_FORD_P5,  M_BOO,   ModuleVersion(1,4,0))},
+  {PlatformVersion(P_FORD_T6,  M_TPEC,  ModuleVersion(0,2,0))},
+  {PlatformVersion(P_FORD_T6,  M_STEER, ModuleVersion(0,2,0))},
+  {PlatformVersion(P_FORD_U6,  M_TPEC,  ModuleVersion(1,0,0))},
+  {PlatformVersion(P_FORD_U6,  M_STEER, ModuleVersion(1,0,0))},
+  {PlatformVersion(P_FORD_U6,  M_SHIFT, ModuleVersion(1,0,0))},
+  {PlatformVersion(P_FORD_U6,  M_ABS,   ModuleVersion(1,0,0))},
+  {PlatformVersion(P_FORD_U6,  M_BOO,   ModuleVersion(1,0,0))},
+  {PlatformVersion(P_FORD_C1,  M_TPEC,  ModuleVersion(1,2,0))},
+  {PlatformVersion(P_FORD_C1,  M_STEER, ModuleVersion(1,2,0))},
+  {PlatformVersion(P_FORD_C1,  M_SHIFT, ModuleVersion(1,2,0))},
+  {PlatformVersion(P_FORD_C1,  M_ABS,   ModuleVersion(1,2,0))},
+  {PlatformVersion(P_FORD_C1,  M_BOO,   ModuleVersion(1,2,0))},
+  {PlatformVersion(P_FORD_C1,  M_EPS,   ModuleVersion(1,2,0))},
 });
 
 DbwNode::DbwNode(ros::NodeHandle &node, ros::NodeHandle &priv_nh)
@@ -75,7 +93,7 @@ DbwNode::DbwNode(ros::NodeHandle &node, ros::NodeHandle &priv_nh)
 , sync_gps_(10, boost::bind(&DbwNode::recvCanGps, this, _1), ID_REPORT_GPS1, ID_REPORT_GPS2, ID_REPORT_GPS3)
 {
   // Reduce synchronization delay
-  sync_imu_.setInterMessageLowerBound(ros::Duration(0.006)); // 20ms period
+  sync_imu_.setInterMessageLowerBound(ros::Duration(0.003)); // 10ms period
   sync_gps_.setInterMessageLowerBound(ros::Duration(0.3)); // 1s period
 
   // Initialize enable state machine
@@ -117,10 +135,9 @@ DbwNode::DbwNode(ros::NodeHandle &node, ros::NodeHandle &priv_nh)
   priv_nh.getParam("pedal_luts", pedal_luts_);
 
   // Ackermann steering parameters
-  acker_wheelbase_ = 3.08864; // 121.6 inches
-  acker_track_ = 1.73228; // 68.2 inches
-  steering_ratio_ = 16.2;
-  wheel_radius_ = 0.365;
+  acker_wheelbase_ = 2.8498; // 112.2 inches
+  acker_track_ = 1.5824; // 62.3 inches
+  steering_ratio_ = 14.8;
   priv_nh.getParam("ackermann_wheelbase", acker_wheelbase_);
   priv_nh.getParam("ackermann_track", acker_track_);
   priv_nh.getParam("steering_ratio", steering_ratio_);
@@ -139,22 +156,24 @@ DbwNode::DbwNode(ros::NodeHandle &node, ros::NodeHandle &priv_nh)
 
   // Setup Publishers
   pub_can_ = node.advertise<can_msgs::Frame>("can_tx", 10);
-  pub_brake_ = node.advertise<dbw_fca_msgs::BrakeReport>("brake_report", 2);
-  pub_throttle_ = node.advertise<dbw_fca_msgs::ThrottleReport>("throttle_report", 2);
-  pub_steering_ = node.advertise<dbw_fca_msgs::SteeringReport>("steering_report", 2);
-  pub_gear_ = node.advertise<dbw_fca_msgs::GearReport>("gear_report", 2);
-  pub_misc_1_ = node.advertise<dbw_fca_msgs::Misc1Report>("misc_1_report", 2);
-  pub_misc_2_ = node.advertise<dbw_fca_msgs::Misc2Report>("misc_2_report", 2);
-  pub_wheel_speeds_ = node.advertise<dbw_fca_msgs::WheelSpeedReport>("wheel_speed_report", 2);
-  pub_wheel_positions_ = node.advertise<dbw_fca_msgs::WheelPositionReport>("wheel_position_report", 2);
-  pub_tire_pressure_ = node.advertise<dbw_fca_msgs::TirePressureReport>("tire_pressure_report", 2);
-  pub_fuel_level_ = node.advertise<dbw_fca_msgs::FuelLevelReport>("fuel_level_report", 2);
-  pub_brake_info_ = node.advertise<dbw_fca_msgs::BrakeInfoReport>("brake_info_report", 2);
-  pub_throttle_info_ = node.advertise<dbw_fca_msgs::ThrottleInfoReport>("throttle_info_report", 2);
+  pub_brake_ = node.advertise<dbw_ford_msgs::BrakeReport>("brake_report", 2);
+  pub_throttle_ = node.advertise<dbw_ford_msgs::ThrottleReport>("throttle_report", 2);
+  pub_steering_ = node.advertise<dbw_ford_msgs::SteeringReport>("steering_report", 2);
+  pub_gear_ = node.advertise<dbw_ford_msgs::GearReport>("gear_report", 2);
+  pub_misc_1_ = node.advertise<dbw_ford_msgs::Misc1Report>("misc_1_report", 2);
+  pub_wheel_speeds_ = node.advertise<dbw_ford_msgs::WheelSpeedReport>("wheel_speed_report", 2);
+  pub_wheel_positions_ = node.advertise<dbw_ford_msgs::WheelPositionReport>("wheel_position_report", 2);
+  pub_tire_pressure_ = node.advertise<dbw_ford_msgs::TirePressureReport>("tire_pressure_report", 2);
+  pub_fuel_level_ = node.advertise<dbw_ford_msgs::FuelLevelReport>("fuel_level_report", 2);
+  pub_surround_ = node.advertise<dbw_ford_msgs::SurroundReport>("surround_report", 2);
+  pub_sonar_cloud_ = node.advertise<sensor_msgs::PointCloud2>("sonar_cloud", 2);
+  pub_brake_info_ = node.advertise<dbw_ford_msgs::BrakeInfoReport>("brake_info_report", 2);
+  pub_throttle_info_ = node.advertise<dbw_ford_msgs::ThrottleInfoReport>("throttle_info_report", 2);
+  pub_driver_assist_ = node.advertise<dbw_ford_msgs::DriverAssistReport>("driver_assist_report", 2);
   pub_imu_ = node.advertise<sensor_msgs::Imu>("imu/data_raw", 10);
   pub_gps_fix_ = node.advertise<sensor_msgs::NavSatFix>("gps/fix", 10);
+  pub_gps_vel_ = node.advertise<geometry_msgs::TwistStamped>("gps/vel", 10);
   pub_gps_time_ = node.advertise<sensor_msgs::TimeReference>("gps/time", 10);
-  pub_gps_fix_dr = node.advertise<sensor_msgs::NavSatFix>("gps_dr/fix", 10);
   pub_twist_ = node.advertise<geometry_msgs::TwistStamped>("twist", 10);
   pub_vin_ = node.advertise<std_msgs::String>("vin", 1, true);
   pub_sys_enable_ = node.advertise<std_msgs::Bool>("dbw_enabled", 1, true);
@@ -175,8 +194,7 @@ DbwNode::DbwNode(ros::NodeHandle &node, ros::NodeHandle &priv_nh)
   sub_throttle_ = node.subscribe("throttle_cmd", 1, &DbwNode::recvThrottleCmd, this, NODELAY);
   sub_steering_ = node.subscribe("steering_cmd", 1, &DbwNode::recvSteeringCmd, this, NODELAY);
   sub_gear_ = node.subscribe("gear_cmd", 1, &DbwNode::recvGearCmd, this, NODELAY);
-  sub_turn_signal_ = node.subscribe("turn_signal_cmd", 1, &DbwNode::recvTurnSignalCmd, this, NODELAY); // Backwards compatiblity
-  sub_misc_ = node.subscribe("misc_cmd", 1, &DbwNode::recvMiscCmd, this, NODELAY);
+  sub_turn_signal_ = node.subscribe("turn_signal_cmd", 1, &DbwNode::recvTurnSignalCmd, this, NODELAY);
 
   // Setup Timer
   timer_ = node.createTimer(ros::Duration(1 / 20.0), &DbwNode::timerCallback, this);
@@ -207,11 +225,9 @@ void DbwNode::recvCAN(const can_msgs::Frame::ConstPtr& msg)
           const MsgBrakeReport *ptr = (const MsgBrakeReport*)msg->data.elems;
           faultBrakes(ptr->FLT1 || ptr->FLT2);
           faultWatchdog(ptr->FLTWDC, ptr->WDCSRC, ptr->WDCBRK);
-          overrideBrake(ptr->OVERRIDE, ptr->TMOUT);
-          timeoutBrake(ptr->TMOUT, ptr->ENABLED);
-          dbw_fca_msgs::BrakeReport out;
+          dbw_ford_msgs::BrakeReport out;
           out.header.stamp = msg->header.stamp;
-          if (ptr->BTYPE == 0) {
+          if (ptr->BTYPE == 0 || firmware_.findModule(M_BPEC).valid()) {
             // Brake pedal emulator for hybrid electric vehicles
             out.pedal_input  = (float)ptr->PI / UINT16_MAX;
             out.pedal_cmd    = (float)ptr->PC / UINT16_MAX;
@@ -219,14 +235,20 @@ void DbwNode::recvCAN(const can_msgs::Frame::ConstPtr& msg)
             out.torque_input  = brakeTorqueFromPedal(out.pedal_input);
             out.torque_cmd    = brakeTorqueFromPedal(out.pedal_cmd);
             out.torque_output = brakeTorqueFromPedal(out.pedal_output);
-          } else if (ptr->BTYPE == 1) {
+          } else if (ptr->BTYPE == 1 || firmware_.findModule(M_ABS).valid()) {
             // ACC/AEB braking for non-hybrid vehicles
             out.torque_input = ptr->PI;
             out.decel_cmd    = ptr->PC * 1e-3f;
             out.decel_output = ptr->PO * 1e-3f;
+          } else if (ptr->BTYPE == 2) {
+            // Brake pedal actuator for vehicles without brake-by-wire
+            out.torque_input = ptr->PI;
+            out.torque_cmd = ptr->PC;
+            out.torque_output = ptr->PO;
           } else {
             ROS_WARN_THROTTLE(5.0, "Unsupported brake report type: %u", ptr->BTYPE);
           }
+          out.boo_cmd    = ptr->BC ? true : false;
           out.enabled = ptr->ENABLED ? true : false;
           out.override = ptr->OVERRIDE ? true : false;
           out.driver = ptr->DRIVER ? true : false;
@@ -237,6 +259,8 @@ void DbwNode::recvCAN(const can_msgs::Frame::ConstPtr& msg)
           out.fault_ch2 = ptr->FLT2 ? true : false;
           out.fault_power = ptr->FLTPWR ? true : false;
           out.timeout = ptr->TMOUT ? true : false;
+          timeoutBrake(ptr->TMOUT, ptr->ENABLED);
+          overrideBrake(ptr->OVERRIDE, out.timeout);
           pub_brake_.publish(out);
           if (ptr->FLT1 || ptr->FLT2 || ptr->FLTPWR) {
             ROS_WARN_THROTTLE(5.0, "Brake fault.    FLT1: %s FLT2: %s FLTPWR: %s",
@@ -252,9 +276,7 @@ void DbwNode::recvCAN(const can_msgs::Frame::ConstPtr& msg)
           const MsgThrottleReport *ptr = (const MsgThrottleReport*)msg->data.elems;
           faultThrottle(ptr->FLT1 || ptr->FLT2);
           faultWatchdog(ptr->FLTWDC, ptr->WDCSRC);
-          overrideThrottle(ptr->OVERRIDE, ptr->TMOUT);
-          timeoutThrottle(ptr->TMOUT, ptr->ENABLED);
-          dbw_fca_msgs::ThrottleReport out;
+          dbw_ford_msgs::ThrottleReport out;
           out.header.stamp = msg->header.stamp;
           out.pedal_input  = (float)ptr->PI / UINT16_MAX;
           out.pedal_cmd    = (float)ptr->PC / UINT16_MAX;
@@ -268,6 +290,8 @@ void DbwNode::recvCAN(const can_msgs::Frame::ConstPtr& msg)
           out.fault_ch2 = ptr->FLT2 ? true : false;
           out.fault_power = ptr->FLTPWR ? true : false;
           out.timeout = ptr->TMOUT ? true : false;
+          timeoutThrottle(ptr->TMOUT, ptr->ENABLED);
+          overrideThrottle(ptr->OVERRIDE, out.timeout);
           pub_throttle_.publish(out);
           if (ptr->FLT1 || ptr->FLT2 || ptr->FLTPWR) {
             ROS_WARN_THROTTLE(5.0, "Throttle fault. FLT1: %s FLT2: %s FLTPWR: %s",
@@ -284,19 +308,17 @@ void DbwNode::recvCAN(const can_msgs::Frame::ConstPtr& msg)
           faultSteering(ptr->FLTBUS1 || ptr->FLTBUS2);
           faultSteeringCal(ptr->FLTCAL);
           faultWatchdog(ptr->FLTWDC);
-          overrideSteering(ptr->OVERRIDE, ptr->TMOUT);
-          timeoutSteering(ptr->TMOUT, ptr->ENABLED);
-          dbw_fca_msgs::SteeringReport out;
+          dbw_ford_msgs::SteeringReport out;
           out.header.stamp = msg->header.stamp;
           if ((uint16_t)ptr->ANGLE == 0x8000) {
             out.steering_wheel_angle = NAN;
           } else {
             out.steering_wheel_angle = (float)ptr->ANGLE * (float)(0.1 * M_PI / 180);
           }
-          out.steering_wheel_cmd_type = ptr->TMODE ? dbw_fca_msgs::SteeringReport::CMD_TORQUE : dbw_fca_msgs::SteeringReport::CMD_ANGLE;
+          out.steering_wheel_cmd_type = ptr->TMODE ? dbw_ford_msgs::SteeringReport::CMD_TORQUE : dbw_ford_msgs::SteeringReport::CMD_ANGLE;
           if ((uint16_t)ptr->CMD == 0xC000) {
             out.steering_wheel_cmd = NAN;
-          } else if (out.steering_wheel_cmd_type == dbw_fca_msgs::SteeringReport::CMD_ANGLE) {
+          } else if (out.steering_wheel_cmd_type == dbw_ford_msgs::SteeringReport::CMD_ANGLE) {
             out.steering_wheel_cmd = (float)ptr->CMD * (float)(0.1 * M_PI / 180);
           } else {
             out.steering_wheel_cmd = (float)ptr->CMD / 128.0f;
@@ -319,6 +341,8 @@ void DbwNode::recvCAN(const can_msgs::Frame::ConstPtr& msg)
           out.fault_calibration = ptr->FLTCAL ? true : false;
           out.fault_power = ptr->FLTPWR ? true : false;
           out.timeout = ptr->TMOUT ? true : false;
+          timeoutSteering(ptr->TMOUT, ptr->ENABLED);
+          overrideSteering(ptr->OVERRIDE, out.timeout);
           pub_steering_.publish(out);
           geometry_msgs::TwistStamped twist;
           twist.header.stamp = out.header.stamp;
@@ -327,7 +351,7 @@ void DbwNode::recvCAN(const can_msgs::Frame::ConstPtr& msg)
           twist.twist.angular.z = out.speed * tan(out.steering_wheel_angle / steering_ratio_) / acker_wheelbase_;
           pub_twist_.publish(twist);
           if (enable_joint_states_) {
-            publishJointStates(msg->header.stamp, &out);
+            publishJointStates(msg->header.stamp, NULL, &out);
           }
           if (ptr->FLTBUS1 || ptr->FLTBUS2 || ptr->FLTPWR) {
             ROS_WARN_THROTTLE(5.0, "Steering fault. FLT1: %s FLT2: %s FLTPWR: %s",
@@ -344,7 +368,7 @@ void DbwNode::recvCAN(const can_msgs::Frame::ConstPtr& msg)
         if (msg->dlc >= 1) {
           const MsgGearReport *ptr = (const MsgGearReport*)msg->data.elems;
           overrideGear(ptr->OVERRIDE);
-          dbw_fca_msgs::GearReport out;
+          dbw_ford_msgs::GearReport out;
           out.header.stamp = msg->header.stamp;
           out.state.gear = ptr->STATE;
           out.cmd.gear = ptr->CMD;
@@ -352,24 +376,30 @@ void DbwNode::recvCAN(const can_msgs::Frame::ConstPtr& msg)
           out.fault_bus = ptr->FLTBUS ? true : false;
           if (msg->dlc >= sizeof(MsgGearReport)) {
             out.reject.value = ptr->REJECT;
-            if (out.reject.value == dbw_fca_msgs::GearReject::NONE) {
+            if (out.reject.value == dbw_ford_msgs::GearReject::NONE) {
               gear_warned_ = false;
             } else if (!gear_warned_) {
               gear_warned_ = true;
               switch (out.reject.value) {
-                case dbw_fca_msgs::GearReject::SHIFT_IN_PROGRESS:
+                case dbw_ford_msgs::GearReject::SHIFT_IN_PROGRESS:
                   ROS_WARN("Gear shift rejected: Shift in progress");
                   break;
-                case dbw_fca_msgs::GearReject::OVERRIDE:
+                case dbw_ford_msgs::GearReject::OVERRIDE:
                   ROS_WARN("Gear shift rejected: Override on brake, throttle, or steering");
                   break;
-                case dbw_fca_msgs::GearReject::VEHICLE:
+                case dbw_ford_msgs::GearReject::ROTARY_LOW:
+                  ROS_WARN("Gear shift rejected: Rotary shifter can't shift to Low");
+                  break;
+                case dbw_ford_msgs::GearReject::ROTARY_PARK:
+                  ROS_WARN("Gear shift rejected: Rotary shifter can't shift out of Park");
+                  break;
+                case dbw_ford_msgs::GearReject::VEHICLE:
                   ROS_WARN("Gear shift rejected: Rejected by vehicle, try pressing the brakes");
                   break;
-                case dbw_fca_msgs::GearReject::UNSUPPORTED:
+                case dbw_ford_msgs::GearReject::UNSUPPORTED:
                   ROS_WARN("Gear shift rejected: Unsupported gear command");
                   break;
-                case dbw_fca_msgs::GearReject::FAULT:
+                case dbw_ford_msgs::GearReject::FAULT:
                   ROS_WARN("Gear shift rejected: System in fault state");
                   break;
               }
@@ -380,71 +410,81 @@ void DbwNode::recvCAN(const can_msgs::Frame::ConstPtr& msg)
         break;
 
       case ID_MISC_REPORT:
-        if (msg->dlc >= sizeof(MsgMiscReport)) {
+        if (msg->dlc >= 3) {
           const MsgMiscReport *ptr = (const MsgMiscReport*)msg->data.elems;
           if (buttons_) {
-            if (0) {
+            if (ptr->btn_cc_gap_inc || ptr->btn_cc_cncl) {
               buttonCancel();
-            } else if ((ptr->btn_ld_left && ptr->btn_ld_down)) {
+            } else if ((ptr->btn_cc_set_dec && ptr->btn_cc_gap_dec) || (ptr->btn_cc_set_inc && ptr->btn_cc_off) || (ptr->btn_cc_set_dec && ptr->btn_cc_res)) {
               enableSystem();
             }
           }
-          dbw_fca_msgs::Misc1Report out;
+          dbw_ford_msgs::Misc1Report out;
           out.header.stamp = msg->header.stamp;
           out.turn_signal.value = ptr->turn_signal;
-          out.high_beam.value = ptr->head_light_hi;
+          out.high_beam_headlights = ptr->head_light_hi ? true : false;
           out.wiper.status = ptr->wiper_front;
+          out.ambient_light.status = ptr->light_ambient;
+          out.btn_cc_on = ptr->btn_cc_on ? true : false;
+          out.btn_cc_off = ptr->btn_cc_off ? true : false;
           out.btn_cc_on_off = ptr->btn_cc_on_off ? true : false;
           out.btn_cc_res = ptr->btn_cc_res ? true : false;
           out.btn_cc_cncl = ptr->btn_cc_cncl ? true : false;
+          out.btn_cc_res_cncl = ptr->btn_cc_res_cncl ? true : false;
+          out.btn_cc_res_inc = ptr->btn_cc_res_inc ? true : false;
+          out.btn_cc_res_dec = ptr->btn_cc_res_dec ? true : false;
           out.btn_cc_set_inc = ptr->btn_cc_set_inc ? true : false;
           out.btn_cc_set_dec = ptr->btn_cc_set_dec ? true : false;
           out.btn_cc_gap_inc = ptr->btn_cc_gap_inc ? true : false;
           out.btn_cc_gap_dec = ptr->btn_cc_gap_dec ? true : false;
-          out.btn_cc_mode = ptr->btn_cc_mode ? true : false;
-          out.btn_ld_ok = ptr->btn_ld_ok ? true : false;
-          out.btn_ld_up = ptr->btn_ld_up ? true : false;
-          out.btn_ld_down = ptr->btn_ld_down ? true : false;
-          out.btn_ld_left = ptr->btn_ld_left ? true : false;
-          out.btn_ld_right = ptr->btn_ld_right ? true : false;
+          out.btn_la_on_off = ptr->btn_la_on_off ? true : false;
           out.fault_bus = ptr->FLTBUS ? true : false;
-          out.door_rear_left = ptr->door_rear_left ? true : false;
-          out.door_rear_right = ptr->door_rear_right ? true : false;
-          out.door_trunk = ptr->door_trunk ? true : false;
+          if (msg->dlc >= 5) {
+            out.door_driver = ptr->door_driver ? true : false;
+            out.door_passenger = ptr->door_passenger ? true : false;
+            out.door_rear_left = ptr->door_rear_left ? true : false;
+            out.door_rear_right = ptr->door_rear_right ? true : false;
+            out.door_hood = ptr->door_hood ? true : false;
+            out.door_trunk = ptr->door_trunk ? true : false;
+            out.passenger_detect = ptr->pasngr_detect ? true : false;
+            out.passenger_airbag = ptr->pasngr_airbag ? true : false;
+            out.buckle_driver = ptr->buckle_driver ? true : false;
+            out.buckle_passenger = ptr->buckle_pasngr ? true : false;
+            out.btn_ld_ok = ptr->btn_ld_ok ? true : false;
+            out.btn_ld_up = ptr->btn_ld_up ? true : false;
+            out.btn_ld_down = ptr->btn_ld_down ? true : false;
+            out.btn_ld_left = ptr->btn_ld_left ? true : false;
+            out.btn_ld_right = ptr->btn_ld_right ? true : false;
+          }
+          if (msg->dlc >= 8) {
+            out.btn_rd_ok = ptr->btn_rd_ok ? true : false;
+            out.btn_rd_up = ptr->btn_rd_up ? true : false;
+            out.btn_rd_down = ptr->btn_rd_down ? true : false;
+            out.btn_rd_left = ptr->btn_rd_left ? true : false;
+            out.btn_rd_right = ptr->btn_rd_right ? true : false;
+            out.btn_vol_inc = ptr->btn_vol_inc ? true : false;
+            out.btn_vol_dec = ptr->btn_vol_dec ? true : false;
+            out.btn_mute = ptr->btn_mute ? true : false;
+            out.btn_media = ptr->btn_media ? true : false;
+            out.btn_prev = ptr->btn_prev ? true : false;
+            out.btn_next = ptr->btn_next ? true : false;
+            out.btn_speak = ptr->btn_speak ? true : false;
+            out.btn_call_start = ptr->btn_call_start ? true : false;
+            out.btn_call_end = ptr->btn_call_end ? true : false;
+          }
+          if ((msg->dlc >= 8) && (ptr->outside_air_temp < 0xFE)) {
+            out.outside_temperature = ((float)ptr->outside_air_temp * 0.5f) - 40.0f;
+          } else {
+            out.outside_temperature = NAN;
+          }
           pub_misc_1_.publish(out);
         }
         break;
 
-      case ID_MISC2_REPORT:
-        if (msg->dlc >= sizeof(MsgMisc2Report)) {
-          const MsgMisc2Report *ptr = (const MsgMisc2Report*)msg->data.elems;
-          dbw_fca_msgs::Misc2Report out;
-          out.header.stamp = msg->header.stamp;
-          out.ft_drv_temp.value = ptr->ft_drv_temp_stat;
-          out.ft_psg_temp.value = ptr->ft_psg_temp_stat;
-          out.ft_fan_speed.value = ptr->ft_fn_sp_stat;
-          out.max_ac = ptr->max_ac ? true : false;
-          out.ac = ptr->ac ? true : false;
-          out.ft_hvac = ptr->ft_hvac ? true : false;
-          out.auto_md = ptr->auto_md ? true : false;
-          out.recirc = ptr->recirc ? true : false;
-          out.sync = ptr->sync ? true : false;
-          out.r_defr = ptr->r_defr ? true : false;
-          out.f_defr = ptr->f_defr ? true : false;
-          out.vent_mode.value = ptr->vent_md_stat;
-          out.heated_steering_wheel = ptr->hsw_stat ? true : false;
-          out.fl_heated_seat.value = ptr->fl_hs_stat;
-          out.fl_vented_seat.value = ptr->fl_vs_stat;
-          out.fr_heated_seat.value = ptr->fr_hs_stat;
-          out.fr_vented_seat.value = ptr->fr_vs_stat;
-          pub_misc_2_.publish(out);
-        }
-        break;        
-
       case ID_REPORT_WHEEL_SPEED:
         if (msg->dlc >= sizeof(MsgReportWheelSpeed)) {
           const MsgReportWheelSpeed *ptr = (const MsgReportWheelSpeed*)msg->data.elems;
-          dbw_fca_msgs::WheelSpeedReport out;
+          dbw_ford_msgs::WheelSpeedReport out;
           out.header.stamp = msg->header.stamp;
           if ((uint16_t)ptr->front_left == 0x8000) {
             out.front_left = NAN;
@@ -467,13 +507,16 @@ void DbwNode::recvCAN(const can_msgs::Frame::ConstPtr& msg)
             out.rear_right = (float)ptr->rear_right * 0.01f;
           }
           pub_wheel_speeds_.publish(out);
+          if (enable_joint_states_) {
+            publishJointStates(msg->header.stamp, &out, NULL);
+          }
         }
         break;
 
       case ID_REPORT_WHEEL_POSITION:
         if (msg->dlc >= sizeof(MsgReportWheelPosition)) {
           const MsgReportWheelPosition *ptr = (const MsgReportWheelPosition*)msg->data.elems;
-          dbw_fca_msgs::WheelPositionReport out;
+          dbw_ford_msgs::WheelPositionReport out;
           out.header.stamp = msg->header.stamp;
           out.front_left  = ptr->front_left;
           out.front_right = ptr->front_right;
@@ -483,10 +526,10 @@ void DbwNode::recvCAN(const can_msgs::Frame::ConstPtr& msg)
         }
         break;
 
-     case ID_REPORT_TIRE_PRESSURE:
+      case ID_REPORT_TIRE_PRESSURE:
         if (msg->dlc >= sizeof(MsgReportTirePressure)) {
           const MsgReportTirePressure *ptr = (const MsgReportTirePressure*)msg->data.elems;
-          dbw_fca_msgs::TirePressureReport out;
+          dbw_ford_msgs::TirePressureReport out;
           out.header.stamp = msg->header.stamp;
           if (ptr->front_left == 0xFFFF) {
             out.front_left = NAN;
@@ -512,69 +555,156 @@ void DbwNode::recvCAN(const can_msgs::Frame::ConstPtr& msg)
         }
         break;
 
-
       case ID_REPORT_FUEL_LEVEL:
         if (msg->dlc >= 2) {
           const MsgReportFuelLevel *ptr = (const MsgReportFuelLevel*)msg->data.elems;
-          dbw_fca_msgs::FuelLevelReport out;
+          dbw_ford_msgs::FuelLevelReport out;
           out.header.stamp = msg->header.stamp;
           out.fuel_level  = (float)ptr->fuel_level * 0.108696f;
           if (msg->dlc >= sizeof(MsgReportFuelLevel)) {
             out.battery_12v = (float)ptr->battery_12v * 0.0625f;
+            out.battery_hev = (float)ptr->battery_hev * 0.5f;
             out.odometer = (float)ptr->odometer * 0.1f;
           }
           pub_fuel_level_.publish(out);
         }
         break;
 
+      case ID_REPORT_SURROUND:
+        if (msg->dlc >= sizeof(MsgReportSurround)) {
+          const MsgReportSurround *ptr = (const MsgReportSurround*)msg->data.elems;
+          dbw_ford_msgs::SurroundReport out;
+          out.header.stamp = msg->header.stamp;
+          out.cta_left_alert = ptr->l_cta_alert ? true : false;
+          out.cta_right_alert = ptr->r_cta_alert ? true : false;
+          out.cta_left_enabled = ptr->l_cta_enabled ? true : false;
+          out.cta_right_enabled = ptr->r_cta_enabled ? true : false;
+          out.blis_left_alert = ptr->l_blis_alert ? true : false;
+          out.blis_right_alert = ptr->r_blis_alert ? true : false;
+          out.blis_left_enabled = ptr->l_blis_enabled ? true : false;
+          out.blis_right_enabled = ptr->r_blis_enabled ? true : false;
+          out.sonar_enabled = ptr->sonar_enabled ? true : false;
+          out.sonar_fault = ptr->sonar_fault ? true : false;
+          if (out.sonar_enabled) {
+            out.sonar[0] = sonarMetersFromBits(ptr->sonar_00);
+            out.sonar[1] = sonarMetersFromBits(ptr->sonar_01);
+            out.sonar[2] = sonarMetersFromBits(ptr->sonar_02);
+            out.sonar[3] = sonarMetersFromBits(ptr->sonar_03);
+            out.sonar[4] = sonarMetersFromBits(ptr->sonar_04);
+            out.sonar[5] = sonarMetersFromBits(ptr->sonar_05);
+            out.sonar[6] = sonarMetersFromBits(ptr->sonar_06);
+            out.sonar[7] = sonarMetersFromBits(ptr->sonar_07);
+            out.sonar[8] = sonarMetersFromBits(ptr->sonar_08);
+            out.sonar[9] = sonarMetersFromBits(ptr->sonar_09);
+            out.sonar[10] = sonarMetersFromBits(ptr->sonar_10);
+            out.sonar[11] = sonarMetersFromBits(ptr->sonar_11);
+          }
+          pub_surround_.publish(out);
+          sensor_msgs::PointCloud2 cloud;
+          sonarBuildPointCloud2(cloud, out);
+          pub_sonar_cloud_.publish(cloud);
+        }
+        break;
+
       case ID_REPORT_BRAKE_INFO:
         if (msg->dlc >= sizeof(MsgReportBrakeInfo)) {
           const MsgReportBrakeInfo *ptr = (const MsgReportBrakeInfo*)msg->data.elems;
-          dbw_fca_msgs::BrakeInfoReport out;
+          dbw_ford_msgs::BrakeInfoReport out;
           out.header.stamp = msg->header.stamp;
-          if (ptr->brake_pc == 0xFF) {
-            out.brake_pc = NAN;
-          } else {
-            out.brake_pc = (float)ptr->brake_pc * 0.4f;
-          }
           if (ptr->brake_torque_request == 0xFFF) {
             out.brake_torque_request = NAN;
           } else {
-            out.brake_torque_request = (float)ptr->brake_torque_request * 3.0f;
+            out.brake_torque_request = (float)ptr->brake_torque_request * 4.0f;
           }
           if (ptr->brake_torque_actual == 0xFFF) {
             out.brake_torque_actual = NAN;
           } else {
-            out.brake_torque_actual = (float)ptr->brake_torque_actual * 3.0f;
+            out.brake_torque_actual = (float)ptr->brake_torque_actual * 4.0f;
           }
-          if (ptr->brake_pressure == 0x7FF) {
-            out.brake_pressure = NAN;
+          if ((uint16_t)ptr->wheel_torque == 0xE000) {
+            out.wheel_torque_actual = NAN;
           } else {
-            out.brake_pressure = (float)ptr->brake_pressure * 0.1f;
+            out.wheel_torque_actual = (float)ptr->wheel_torque * 4.0f;
           }
+          if ((uint16_t)ptr->accel_over_ground_est == 0xE00) {
+            out.accel_over_ground = NAN;
+          } else {
+            out.accel_over_ground = (float)ptr->accel_over_ground_est * 0.035f;
+          }
+          out.brake_pedal_qf.value = ptr->bped_qf;
+          out.hsa.status = ptr->hsa_stat;
+          out.hsa.mode = ptr->hsa_mode;
+          out.abs_active = ptr->abs_active ? true : false;
+          out.abs_enabled = ptr->abs_enabled ? true : false;
+          out.stab_active = ptr->stab_active ? true : false;
+          out.stab_enabled = ptr->stab_enabled ? true : false;
+          out.trac_active = ptr->trac_active ? true : false;
+          out.trac_enabled = ptr->trac_enabled ? true : false;
+          out.parking_brake.status = ptr->parking_brake;
           out.stationary = ptr->stationary;
           pub_brake_info_.publish(out);
+          if (ptr->bped_qf != dbw_ford_msgs::QualityFactor::OK) {
+            ROS_WARN_THROTTLE(5.0, "Brake pedal limp-home: %u", ptr->bped_qf);
+          }
         }
         break;
 
       case ID_REPORT_THROTTLE_INFO:
         if (msg->dlc >= sizeof(MsgReportThrottleInfo)) {
           const MsgReportThrottleInfo *ptr = (const MsgReportThrottleInfo*)msg->data.elems;
-          dbw_fca_msgs::ThrottleInfoReport out;
+          dbw_ford_msgs::ThrottleInfoReport out;
           out.header.stamp = msg->header.stamp;
-          if (ptr->throttle_pc == 0xFF) {
+          if (ptr->throttle_pc == 0x3FF) {
             out.throttle_pc = NAN;
           } else {
-            out.throttle_pc = (float)ptr->throttle_pc * 0.4f;
+            out.throttle_pc = (float)ptr->throttle_pc * 1e-3f;
           }
-          if ((uint16_t)ptr->axle_torque == 0xC000) {
-            out.axle_torque = NAN;
+          if ((uint8_t)ptr->throttle_rate == 0x80) {
+            out.throttle_rate = NAN;
           } else {
-            out.axle_torque = (float)ptr->axle_torque * 1.5625f;
+            out.throttle_rate = (float)ptr->throttle_rate * 4e-4f;
+          }
+          out.throttle_pedal_qf.value = ptr->aped_qf;
+          if (ptr->engine_rpm == 0xFFFF) {
+            out.engine_rpm = NAN;
+          } else {
+            out.engine_rpm = (float)ptr->engine_rpm * 0.25f;
           }
           out.gear_num.num = ptr->gear_num;
           out.ignition.value = ptr->ign_stat;
+          if ((uint16_t)ptr->batt_curr == 0xE000) {
+            out.batt_curr = NAN;
+          } else {
+            out.batt_curr = (float)ptr->batt_curr * 0.0625f;
+          }
           pub_throttle_info_.publish(out);
+          if (ptr->aped_qf != dbw_ford_msgs::QualityFactor::OK) {
+            ROS_WARN_THROTTLE(5.0, "Throttle pedal limp-home: %u", ptr->aped_qf);
+          }
+        }
+        break;
+
+      case ID_REPORT_DRIVER_ASSIST:
+        if (msg->dlc >= sizeof(MsgReportDriverAssist)) {
+          const MsgReportDriverAssist *ptr = (const MsgReportDriverAssist*)msg->data.elems;
+          dbw_ford_msgs::DriverAssistReport out;
+          out.header.stamp = msg->header.stamp;
+          out.decel = (float)ptr->decel * 0.0625f;
+          out.decel_src     = ptr->decel_src;
+          out.fcw_enabled   = ptr->fcw_enabled;
+          out.fcw_active    = ptr->fcw_active;
+          out.aeb_enabled   = ptr->aeb_enabled;
+          out.aeb_precharge = ptr->aeb_precharge;
+          out.aeb_braking   = ptr->aeb_braking;
+          out.acc_enabled   = ptr->acc_enabled;
+          out.acc_braking   = ptr->acc_braking;
+          pub_driver_assist_.publish(out);
+          if (out.fcw_active) {
+            ROS_WARN_THROTTLE(5.0, "Forward collision warning activated!");
+          }
+          if (out.aeb_braking) {
+            ROS_WARN_THROTTLE(5.0, "Automatic emergency braking activated!");
+          }
         }
         break;
 
@@ -668,7 +798,7 @@ void DbwNode::recvCAN(const can_msgs::Frame::ConstPtr& msg)
               ROS_INFO("Licensing: VIN: %s", vin_.c_str());
             }
           } else if ((LIC_MUX_F0 <= ptr->mux) && (ptr->mux <= LIC_MUX_F7)) {
-            constexpr std::array<const char*, 8> NAME = {"BASE","CONTROL","SENSORS","","","","",""};
+            constexpr std::array<const char*, 8> NAME = {"BASE","CONTROL","SENSORS","REMOTE","","","",""};
             constexpr std::array<bool, 8> WARN = {true, true, true, false, true, true, true, true};
             const size_t i = ptr->mux - LIC_MUX_F0;
             const int id = module * NAME.size() + i;
@@ -766,6 +896,16 @@ void DbwNode::recvCanImu(const std::vector<can_msgs::Frame::ConstPtr> &msgs) {
     } else {
       out.linear_acceleration.y = (double)ptr_accel->accel_lat * -0.01;
     }
+    if ((uint16_t)ptr_accel->accel_vert == 0x8000) {
+      out.linear_acceleration.z = NAN;
+    } else {
+      out.linear_acceleration.z = (double)ptr_accel->accel_vert * -0.01;
+    }
+    if ((uint16_t)ptr_gyro->gyro_roll == 0x8000) {
+      out.angular_velocity.x = NAN;
+    } else {
+      out.angular_velocity.x = (double)ptr_gyro->gyro_roll * 0.0002;
+    }
     if ((uint16_t)ptr_gyro->gyro_yaw == 0x8000) {
       out.angular_velocity.z = NAN;
     } else {
@@ -795,11 +935,28 @@ void DbwNode::recvCanGps(const std::vector<can_msgs::Frame::ConstPtr> &msgs) {
     msg_fix.header.stamp =  msgs[0]->header.stamp;
     msg_fix.latitude = (double)ptr1->latitude / 3e6;
     msg_fix.longitude = (double)ptr1->longitude / 3e6;
-    msg_fix.altitude = 0.0;
+    msg_fix.altitude = (double)ptr3->altitude * 0.25;
     msg_fix.position_covariance_type = sensor_msgs::NavSatFix::COVARIANCE_TYPE_UNKNOWN;
-    msg_fix.status.service = sensor_msgs::NavSatStatus::SERVICE_GPS;    
-    msg_fix.status.status = sensor_msgs::NavSatStatus::STATUS_NO_FIX;
+    msg_fix.status.service = sensor_msgs::NavSatStatus::SERVICE_GPS;
+    switch (ptr3->quality) {
+      case 0:
+      default:
+        msg_fix.status.status = sensor_msgs::NavSatStatus::STATUS_NO_FIX;
+        break;
+      case 1:
+      case 2:
+        msg_fix.status.status = sensor_msgs::NavSatStatus::STATUS_FIX;
+        break;
+    }
     pub_gps_fix_.publish(msg_fix);
+
+    geometry_msgs::TwistStamped msg_vel;
+    msg_vel.header.stamp = msgs[0]->header.stamp;
+    double heading = (double)ptr3->heading * (0.01 * M_PI / 180);
+    double speed = (double)ptr3->speed * 0.44704;
+    msg_vel.twist.linear.x = cos(heading) * speed;
+    msg_vel.twist.linear.y = sin(heading) * speed;
+    pub_gps_vel_.publish(msg_vel);
 
     sensor_msgs::TimeReference msg_time;
     struct tm unix_time;
@@ -813,15 +970,6 @@ void DbwNode::recvCanGps(const std::vector<can_msgs::Frame::ConstPtr> &msgs) {
     msg_time.time_ref.sec = timegm(&unix_time);
     msg_time.time_ref.nsec = 0;
     pub_gps_time_.publish(msg_time);
-
-    sensor_msgs::NavSatFix msg_fix_dr;
-    msg_fix_dr.header.stamp =  msgs[2]->header.stamp;
-    msg_fix_dr.latitude = (double)ptr3->dr_latitude / 3e6;
-    msg_fix_dr.longitude = (double)ptr3->dr_longitude / 3e6;
-    msg_fix_dr.altitude = 0.0;
-    msg_fix_dr.position_covariance_type = sensor_msgs::NavSatFix::COVARIANCE_TYPE_UNKNOWN;
-    msg_fix_dr.status.service = sensor_msgs::NavSatStatus::SERVICE_GPS;
-    pub_gps_fix_dr.publish(msg_fix_dr);
 
 #if 0
     ROS_INFO("UTC Time: %04d-%02d-%02d %02d:%02d:%02d",
@@ -840,7 +988,8 @@ void DbwNode::recvCanGps(const std::vector<can_msgs::Frame::ConstPtr> &msgs) {
                labs((msgs[0]->header.stamp - msgs[2]->header.stamp).toNSec())) / 1000000.0);
 #endif
 }
-void DbwNode::recvBrakeCmd(const dbw_fca_msgs::BrakeCmd::ConstPtr& msg)
+
+void DbwNode::recvBrakeCmd(const dbw_ford_msgs::BrakeCmd::ConstPtr& msg)
 {
   can_msgs::Frame out;
   out.id = ID_BRAKE_CMD;
@@ -849,50 +998,52 @@ void DbwNode::recvBrakeCmd(const dbw_fca_msgs::BrakeCmd::ConstPtr& msg)
   MsgBrakeCmd *ptr = (MsgBrakeCmd*)out.data.elems;
   memset(ptr, 0x00, sizeof(*ptr));
   bool fwd_abs = firmware_.findModule(M_ABS).valid(); // Does the ABS braking module exist?
+  bool fwd_bpe = true;
   bool fwd = !pedal_luts_; // Forward command type, or apply pedal LUTs locally
   fwd |= fwd_abs; // The local pedal LUTs are for the BPEC module, the ABS module requires forwarding
+  fwd &= fwd_bpe; // Only modern BPEC firmware supports forwarding the command type
   switch (msg->pedal_cmd_type) {
-    case dbw_fca_msgs::BrakeCmd::CMD_NONE:
+    case dbw_ford_msgs::BrakeCmd::CMD_NONE:
       break;
-    case dbw_fca_msgs::BrakeCmd::CMD_PEDAL:
-      ptr->CMD_TYPE = dbw_fca_msgs::BrakeCmd::CMD_PEDAL;
+    case dbw_ford_msgs::BrakeCmd::CMD_PEDAL:
+      ptr->CMD_TYPE = dbw_ford_msgs::BrakeCmd::CMD_PEDAL;
       ptr->PCMD = std::clamp<float>(msg->pedal_cmd * UINT16_MAX, 0, UINT16_MAX);
       if (!firmware_.findModule(M_BPEC).valid() && firmware_.findModule(M_ABS).valid()) {
         ROS_WARN_THROTTLE(1.0, "Module ABS does not support brake command type PEDAL");
       }
       break;
-    case dbw_fca_msgs::BrakeCmd::CMD_PERCENT:
+    case dbw_ford_msgs::BrakeCmd::CMD_PERCENT:
       if (fwd) {
-        ptr->CMD_TYPE = dbw_fca_msgs::BrakeCmd::CMD_PERCENT;
+        ptr->CMD_TYPE = dbw_ford_msgs::BrakeCmd::CMD_PERCENT;
         ptr->PCMD = std::clamp<float>(msg->pedal_cmd * UINT16_MAX, 0, UINT16_MAX);
       } else {
-        ptr->CMD_TYPE = dbw_fca_msgs::BrakeCmd::CMD_PEDAL;
+        ptr->CMD_TYPE = dbw_ford_msgs::BrakeCmd::CMD_PEDAL;
         ptr->PCMD = std::clamp<float>(brakePedalFromPercent(msg->pedal_cmd) * UINT16_MAX, 0, UINT16_MAX);
       }
       break;
-    case dbw_fca_msgs::BrakeCmd::CMD_TORQUE:
+    case dbw_ford_msgs::BrakeCmd::CMD_TORQUE:
       if (fwd) {
-        ptr->CMD_TYPE = dbw_fca_msgs::BrakeCmd::CMD_TORQUE;
+        ptr->CMD_TYPE = dbw_ford_msgs::BrakeCmd::CMD_TORQUE;
         ptr->PCMD = std::clamp<float>(msg->pedal_cmd, 0, UINT16_MAX);
       } else {
-        ptr->CMD_TYPE = dbw_fca_msgs::BrakeCmd::CMD_PEDAL;
+        ptr->CMD_TYPE = dbw_ford_msgs::BrakeCmd::CMD_PEDAL;
         ptr->PCMD = std::clamp<float>(brakePedalFromTorque(msg->pedal_cmd) * UINT16_MAX, 0, UINT16_MAX);
       }
       if (!firmware_.findModule(M_BPEC).valid() && firmware_.findModule(M_ABS).valid()) {
         ROS_WARN_THROTTLE(1.0, "Module ABS does not support brake command type TORQUE");
       }
       break;
-    case dbw_fca_msgs::BrakeCmd::CMD_TORQUE_RQ:
+    case dbw_ford_msgs::BrakeCmd::CMD_TORQUE_RQ:
       // CMD_TORQUE_RQ must be forwarded, there is no local implementation
-      ptr->CMD_TYPE = dbw_fca_msgs::BrakeCmd::CMD_TORQUE_RQ;
+      ptr->CMD_TYPE = dbw_ford_msgs::BrakeCmd::CMD_TORQUE_RQ;
       ptr->PCMD = std::clamp<float>(msg->pedal_cmd, 0, UINT16_MAX);
       if (!firmware_.findModule(M_BPEC).valid() && firmware_.findModule(M_ABS).valid()) {
         ROS_WARN_THROTTLE(1.0, "Module ABS does not support brake command type TORQUE_RQ");
       }
       break;
-    case dbw_fca_msgs::BrakeCmd::CMD_DECEL:
+    case dbw_ford_msgs::BrakeCmd::CMD_DECEL:
       // CMD_DECEL must be forwarded, there is no local implementation
-      ptr->CMD_TYPE = dbw_fca_msgs::BrakeCmd::CMD_DECEL;
+      ptr->CMD_TYPE = dbw_ford_msgs::BrakeCmd::CMD_DECEL;
       ptr->PCMD = std::clamp<float>(msg->pedal_cmd * 1e3f, 0, 10e3);
       if (!firmware_.findModule(M_ABS).valid() && firmware_.findModule(M_BPEC).valid()) {
         ROS_WARN_THROTTLE(1.0, "Module BPEC does not support brake command type DECEL");
@@ -915,7 +1066,7 @@ void DbwNode::recvBrakeCmd(const dbw_fca_msgs::BrakeCmd::ConstPtr& msg)
   pub_can_.publish(out);
 }
 
-void DbwNode::recvThrottleCmd(const dbw_fca_msgs::ThrottleCmd::ConstPtr& msg)
+void DbwNode::recvThrottleCmd(const dbw_ford_msgs::ThrottleCmd::ConstPtr& msg)
 {
   can_msgs::Frame out;
   out.id = ID_THROTTLE_CMD;
@@ -926,18 +1077,18 @@ void DbwNode::recvThrottleCmd(const dbw_fca_msgs::ThrottleCmd::ConstPtr& msg)
   bool fwd = !pedal_luts_; // Forward command type, or apply pedal LUTs locally
   float cmd = 0.0;
   switch (msg->pedal_cmd_type) {
-    case dbw_fca_msgs::ThrottleCmd::CMD_NONE:
+    case dbw_ford_msgs::ThrottleCmd::CMD_NONE:
       break;
-    case dbw_fca_msgs::ThrottleCmd::CMD_PEDAL:
-      ptr->CMD_TYPE = dbw_fca_msgs::ThrottleCmd::CMD_PEDAL;
+    case dbw_ford_msgs::ThrottleCmd::CMD_PEDAL:
+      ptr->CMD_TYPE = dbw_ford_msgs::ThrottleCmd::CMD_PEDAL;
       cmd = msg->pedal_cmd;
       break;
-    case dbw_fca_msgs::ThrottleCmd::CMD_PERCENT:
+    case dbw_ford_msgs::ThrottleCmd::CMD_PERCENT:
       if (fwd) {
-        ptr->CMD_TYPE = dbw_fca_msgs::ThrottleCmd::CMD_PERCENT;
+        ptr->CMD_TYPE = dbw_ford_msgs::ThrottleCmd::CMD_PERCENT;
         cmd = msg->pedal_cmd;
       } else {
-        ptr->CMD_TYPE = dbw_fca_msgs::ThrottleCmd::CMD_PEDAL;
+        ptr->CMD_TYPE = dbw_ford_msgs::ThrottleCmd::CMD_PEDAL;
         cmd = throttlePedalFromPercent(msg->pedal_cmd);
       }
       break;
@@ -959,7 +1110,7 @@ void DbwNode::recvThrottleCmd(const dbw_fca_msgs::ThrottleCmd::ConstPtr& msg)
   pub_can_.publish(out);
 }
 
-void DbwNode::recvSteeringCmd(const dbw_fca_msgs::SteeringCmd::ConstPtr& msg)
+void DbwNode::recvSteeringCmd(const dbw_ford_msgs::SteeringCmd::ConstPtr& msg)
 {
   can_msgs::Frame out;
   out.id = ID_STEERING_CMD;
@@ -968,16 +1119,19 @@ void DbwNode::recvSteeringCmd(const dbw_fca_msgs::SteeringCmd::ConstPtr& msg)
   MsgSteeringCmd *ptr = (MsgSteeringCmd*)out.data.elems;
   memset(ptr, 0x00, sizeof(*ptr));
   switch (msg->cmd_type) {
-    case dbw_fca_msgs::SteeringCmd::CMD_ANGLE:
+    case dbw_ford_msgs::SteeringCmd::CMD_ANGLE:
       ptr->SCMD = std::clamp<float>(msg->steering_wheel_angle_cmd * (float)(180 / M_PI * 10), -INT16_MAX, INT16_MAX);
       if (fabsf(msg->steering_wheel_angle_velocity) > 0) {
         ptr->SVEL = std::clamp<float>(roundf(fabsf(msg->steering_wheel_angle_velocity) * (float)(180 / M_PI / 4)), 1, 254);
       }
-      ptr->CMD_TYPE = dbw_fca_msgs::SteeringCmd::CMD_ANGLE;
+      ptr->CMD_TYPE = dbw_ford_msgs::SteeringCmd::CMD_ANGLE;
       break;
-    case dbw_fca_msgs::SteeringCmd::CMD_TORQUE:
+    case dbw_ford_msgs::SteeringCmd::CMD_TORQUE:
       ptr->SCMD = std::clamp<float>(msg->steering_wheel_torque_cmd * 128, -INT16_MAX, INT16_MAX);
-      ptr->CMD_TYPE = dbw_fca_msgs::SteeringCmd::CMD_TORQUE;
+      ptr->CMD_TYPE = dbw_ford_msgs::SteeringCmd::CMD_TORQUE;
+      if (!firmware_.findModule(M_EPS).valid() && firmware_.findModule(M_STEER).valid()) {
+        ROS_WARN_THROTTLE(1.0, "Module STEER does not support steering command type TORQUE");
+      }
       break;
     default:
       ROS_WARN("Unknown steering command type: %u", msg->cmd_type);
@@ -1002,7 +1156,7 @@ void DbwNode::recvSteeringCmd(const dbw_fca_msgs::SteeringCmd::ConstPtr& msg)
   pub_can_.publish(out);
 }
 
-void DbwNode::recvGearCmd(const dbw_fca_msgs::GearCmd::ConstPtr& msg)
+void DbwNode::recvGearCmd(const dbw_ford_msgs::GearCmd::ConstPtr& msg)
 {
   can_msgs::Frame out;
   out.id = ID_GEAR_CMD;
@@ -1019,41 +1173,16 @@ void DbwNode::recvGearCmd(const dbw_fca_msgs::GearCmd::ConstPtr& msg)
   pub_can_.publish(out);
 }
 
-void DbwNode::recvTurnSignalCmd(const dbw_fca_msgs::MiscCmd::ConstPtr& msg)
-{
-  recvMiscCmd(msg);
-}
-
-void DbwNode::recvMiscCmd(const dbw_fca_msgs::MiscCmd::ConstPtr& msg)
+void DbwNode::recvTurnSignalCmd(const dbw_ford_msgs::TurnSignalCmd::ConstPtr& msg)
 {
   can_msgs::Frame out;
   out.id = ID_MISC_CMD;
   out.is_extended = false;
-  out.dlc = sizeof(MsgMiscCmd);
-  MsgMiscCmd *ptr = (MsgMiscCmd*)out.data.elems;
+  out.dlc = sizeof(MsgTurnSignalCmd);
+  MsgTurnSignalCmd *ptr = (MsgTurnSignalCmd*)out.data.elems;
   memset(ptr, 0x00, sizeof(*ptr));
   if (enabled()) {
     ptr->TRNCMD = msg->cmd.value;
-    ptr->DOORSEL = msg->door.select;
-    ptr->DOORCMD = msg->door.action;
-    ptr->vent_md_cmd = msg->vent_mode.value;
-    ptr->ft_drv_temp_cmd = msg->ft_drv_temp.value;
-    ptr->ft_psg_temp_cmd = msg->ft_psg_temp.value;
-    ptr->ft_fn_sp_cmd = msg->ft_fan_speed.value;
-    ptr->sync = msg->sync.cmd;
-    ptr->max_ac = msg->max_ac.cmd;
-    ptr->ac = msg->ac.cmd;
-    ptr->ft_hvac = msg->ft_hvac.cmd;
-    ptr->auto_md = msg->auto_md.cmd;
-    ptr->recirc = msg->recirc.cmd;
-    ptr->sync = msg->sync.cmd;
-    ptr->r_defr = msg->r_defr.cmd;
-    ptr->f_defr = msg->f_defr.cmd;
-    ptr->hsw_cmd = msg->heated_steering_wheel.cmd;
-    ptr->fl_hs_cmd = msg->fl_heated_seat.value;
-    ptr->fl_vs_cmd = msg->fl_vented_seat.value;
-    ptr->fr_hs_cmd = msg->fr_heated_seat.value;
-    ptr->fr_vs_cmd = msg->fr_vented_seat.value;
   }
   pub_can_.publish(out);
 }
@@ -1345,49 +1474,49 @@ void DbwNode::faultWatchdog(bool fault, uint8_t src, bool braking)
   }
   if (fault && src && !fault_watchdog_warned_) {
       switch (src) {
-        case dbw_fca_msgs::WatchdogCounter::OTHER_BRAKE:
+        case dbw_ford_msgs::WatchdogCounter::OTHER_BRAKE:
           ROS_WARN("Watchdog event: Fault determined by brake controller");
           break;
-        case dbw_fca_msgs::WatchdogCounter::OTHER_THROTTLE:
+        case dbw_ford_msgs::WatchdogCounter::OTHER_THROTTLE:
           ROS_WARN("Watchdog event: Fault determined by throttle controller");
           break;
-        case dbw_fca_msgs::WatchdogCounter::OTHER_STEERING:
+        case dbw_ford_msgs::WatchdogCounter::OTHER_STEERING:
           ROS_WARN("Watchdog event: Fault determined by steering controller");
           break;
-        case dbw_fca_msgs::WatchdogCounter::BRAKE_COUNTER:
+        case dbw_ford_msgs::WatchdogCounter::BRAKE_COUNTER:
           ROS_WARN("Watchdog event: Brake command counter failed to increment");
           break;
-        case dbw_fca_msgs::WatchdogCounter::BRAKE_DISABLED:
+        case dbw_ford_msgs::WatchdogCounter::BRAKE_DISABLED:
           ROS_WARN("Watchdog event: Brake transition to disabled while in gear or moving");
           break;
-        case dbw_fca_msgs::WatchdogCounter::BRAKE_COMMAND:
+        case dbw_ford_msgs::WatchdogCounter::BRAKE_COMMAND:
           ROS_WARN("Watchdog event: Brake command timeout after 100ms");
           break;
-        case dbw_fca_msgs::WatchdogCounter::BRAKE_REPORT:
+        case dbw_ford_msgs::WatchdogCounter::BRAKE_REPORT:
           ROS_WARN("Watchdog event: Brake report timeout after 100ms");
           break;
-        case dbw_fca_msgs::WatchdogCounter::THROTTLE_COUNTER:
+        case dbw_ford_msgs::WatchdogCounter::THROTTLE_COUNTER:
           ROS_WARN("Watchdog event: Throttle command counter failed to increment");
           break;
-        case dbw_fca_msgs::WatchdogCounter::THROTTLE_DISABLED:
+        case dbw_ford_msgs::WatchdogCounter::THROTTLE_DISABLED:
           ROS_WARN("Watchdog event: Throttle transition to disabled while in gear or moving");
           break;
-        case dbw_fca_msgs::WatchdogCounter::THROTTLE_COMMAND:
+        case dbw_ford_msgs::WatchdogCounter::THROTTLE_COMMAND:
           ROS_WARN("Watchdog event: Throttle command timeout after 100ms");
           break;
-        case dbw_fca_msgs::WatchdogCounter::THROTTLE_REPORT:
+        case dbw_ford_msgs::WatchdogCounter::THROTTLE_REPORT:
           ROS_WARN("Watchdog event: Throttle report timeout after 100ms");
           break;
-        case dbw_fca_msgs::WatchdogCounter::STEERING_COUNTER:
+        case dbw_ford_msgs::WatchdogCounter::STEERING_COUNTER:
           ROS_WARN("Watchdog event: Steering command counter failed to increment");
           break;
-        case dbw_fca_msgs::WatchdogCounter::STEERING_DISABLED:
+        case dbw_ford_msgs::WatchdogCounter::STEERING_DISABLED:
           ROS_WARN("Watchdog event: Steering transition to disabled while in gear or moving");
           break;
-        case dbw_fca_msgs::WatchdogCounter::STEERING_COMMAND:
+        case dbw_ford_msgs::WatchdogCounter::STEERING_COMMAND:
           ROS_WARN("Watchdog event: Steering command timeout after 100ms");
           break;
-        case dbw_fca_msgs::WatchdogCounter::STEERING_REPORT:
+        case dbw_ford_msgs::WatchdogCounter::STEERING_REPORT:
           ROS_WARN("Watchdog event: Steering report timeout after 100ms");
           break;
       }
@@ -1405,9 +1534,23 @@ void DbwNode::faultWatchdog(bool fault, uint8_t src) {
   faultWatchdog(fault, src, fault_watchdog_using_brakes_); // No change to 'using brakes' status
 }
 
-void DbwNode::publishJointStates(const ros::Time &stamp, const dbw_fca_msgs::SteeringReport *steering)
+void DbwNode::publishJointStates(const ros::Time &stamp, const dbw_ford_msgs::WheelSpeedReport *wheels, const dbw_ford_msgs::SteeringReport *steering)
 {
   double dt = (stamp - joint_state_.header.stamp).toSec();
+  if (wheels) {
+    if (std::isfinite(wheels->front_left)) {
+      joint_state_.velocity[JOINT_FL] = wheels->front_left;
+    }
+    if (std::isfinite(wheels->front_right)) {
+      joint_state_.velocity[JOINT_FR] = wheels->front_right;
+    }
+    if (std::isfinite(wheels->rear_left)) {
+      joint_state_.velocity[JOINT_RL] = wheels->rear_left;
+    }
+    if (std::isfinite(wheels->rear_right)) {
+      joint_state_.velocity[JOINT_RR] = wheels->rear_right;
+    }
+  }
   if (steering) {
     if (std::isfinite(steering->steering_wheel_angle)) {
       const double L = acker_wheelbase_;
@@ -1415,12 +1558,6 @@ void DbwNode::publishJointStates(const ros::Time &stamp, const dbw_fca_msgs::Ste
       const double r = L / tan(steering->steering_wheel_angle / steering_ratio_);
       joint_state_.position[JOINT_SL] = atan(L / (r - W/2));
       joint_state_.position[JOINT_SR] = atan(L / (r + W/2));
-    }
-    if (std::isfinite(steering->speed)) {
-      joint_state_.velocity[JOINT_FL] = steering->speed / wheel_radius_;
-      joint_state_.velocity[JOINT_FR] = steering->speed / wheel_radius_;
-      joint_state_.velocity[JOINT_RL] = steering->speed / wheel_radius_;
-      joint_state_.velocity[JOINT_RR] = steering->speed / wheel_radius_;
     }
   }
   if (dt < 0.5) {
@@ -1432,5 +1569,5 @@ void DbwNode::publishJointStates(const ros::Time &stamp, const dbw_fca_msgs::Ste
   pub_joint_states_.publish(joint_state_);
 }
 
-} // namespace dbw_fca_can
+} // namespace dbw_ford_can
 
