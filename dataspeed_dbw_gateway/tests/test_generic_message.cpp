@@ -1,3 +1,6 @@
+// File under test
+#include "generic_message.hpp"
+
 #include <gtest/gtest.h>
 
 #include <dataspeed_dbw_gateway/msg/bounded_dynamic_arrays.hpp>
@@ -7,8 +10,6 @@
 #include <dataspeed_dbw_gateway/msg/static_arrays.hpp>
 #include <dataspeed_dbw_gateway/msg/types.hpp>
 #include <limits>
-
-#include "generic_message.hpp"
 
 namespace test_msgs = dataspeed_dbw_gateway::msg;
 using namespace ros2_generic_message;
@@ -88,23 +89,23 @@ TEST(GenericMessage, type_copy) {
   ASSERT_TRUE(m1.set(m2));
 
   // ensure they didn't somehow become the same pointer
-  EXPECT_FALSE(&t1 == &t2);
-  EXPECT_FALSE(&t1.t_float == &t2.t_float);
-  EXPECT_FALSE(&t1.t_double == &t2.t_double);
-  EXPECT_FALSE(&t1.t_char == &t2.t_char);
-  EXPECT_FALSE(&t1.t_bool == &t2.t_bool);
-  EXPECT_FALSE(&t1.t_octet == &t2.t_octet);
-  EXPECT_FALSE(&t1.t_u8 == &t2.t_u8);
-  EXPECT_FALSE(&t1.t_i8 == &t2.t_i8);
-  EXPECT_FALSE(&t1.t_u16 == &t2.t_u16);
-  EXPECT_FALSE(&t1.t_i16 == &t2.t_i16);
-  EXPECT_FALSE(&t1.t_u32 == &t2.t_u32);
-  EXPECT_FALSE(&t1.t_i32 == &t2.t_i32);
-  EXPECT_FALSE(&t1.t_u64 == &t2.t_u64);
-  EXPECT_FALSE(&t1.t_i64 == &t2.t_i64);
-  EXPECT_FALSE(&t1.t_string == &t2.t_string);
-  EXPECT_FALSE(&t1.t_wstring == &t2.t_wstring);
-  EXPECT_FALSE(&t1.t_message == &t2.t_message);
+  EXPECT_NE(&t1, &t2);
+  EXPECT_NE(&t1.t_float, &t2.t_float);
+  EXPECT_NE(&t1.t_double, &t2.t_double);
+  EXPECT_NE(&t1.t_char, &t2.t_char);
+  EXPECT_NE(&t1.t_bool, &t2.t_bool);
+  EXPECT_NE(&t1.t_octet, &t2.t_octet);
+  EXPECT_NE(&t1.t_u8, &t2.t_u8);
+  EXPECT_NE(&t1.t_i8, &t2.t_i8);
+  EXPECT_NE(&t1.t_u16, &t2.t_u16);
+  EXPECT_NE(&t1.t_i16, &t2.t_i16);
+  EXPECT_NE(&t1.t_u32, &t2.t_u32);
+  EXPECT_NE(&t1.t_i32, &t2.t_i32);
+  EXPECT_NE(&t1.t_u64, &t2.t_u64);
+  EXPECT_NE(&t1.t_i64, &t2.t_i64);
+  EXPECT_NE(&t1.t_string, &t2.t_string);
+  EXPECT_NE(&t1.t_wstring, &t2.t_wstring);
+  EXPECT_NE(&t1.t_message, &t2.t_message);
 
   // verify set after copy
   EXPECT_FLOAT_EQ(t1.t_float, test_float);
@@ -215,26 +216,26 @@ TEST(GenericMessage, static_array_copy) {
   ASSERT_TRUE(m1.set(m2));
 
   // ensure they didn't somehow become the same pointer
-  EXPECT_FALSE(&t1 == &t2);
-  EXPECT_FALSE(&t1.t_float == &t2.t_float);
-  EXPECT_FALSE(&t1.t_double == &t2.t_double);
-  EXPECT_FALSE(&t1.t_char == &t2.t_char);
-  EXPECT_FALSE(&t1.t_bool == &t2.t_bool);
-  EXPECT_FALSE(&t1.t_octet == &t2.t_octet);
-  EXPECT_FALSE(&t1.t_u8 == &t2.t_u8);
-  EXPECT_FALSE(&t1.t_i8 == &t2.t_i8);
-  EXPECT_FALSE(&t1.t_u16 == &t2.t_u16);
-  EXPECT_FALSE(&t1.t_i16 == &t2.t_i16);
-  EXPECT_FALSE(&t1.t_u32 == &t2.t_u32);
-  EXPECT_FALSE(&t1.t_i32 == &t2.t_i32);
-  EXPECT_FALSE(&t1.t_u64 == &t2.t_u64);
-  EXPECT_FALSE(&t1.t_i64 == &t2.t_i64);
-  EXPECT_FALSE(&t1.t_string == &t2.t_string);
-  EXPECT_FALSE(&t1.t_string[0] == &t2.t_string[0]);
-  EXPECT_FALSE(&t1.t_wstring == &t2.t_wstring);
-  EXPECT_FALSE(&t1.t_wstring[0] == &t2.t_wstring[0]);
-  EXPECT_FALSE(&t1.t_message == &t2.t_message);
-  EXPECT_FALSE(&t1.t_message[0] == &t2.t_message[0]);
+  EXPECT_NE(&t1, &t2);
+  EXPECT_NE(&t1.t_float, &t2.t_float);
+  EXPECT_NE(&t1.t_double, &t2.t_double);
+  EXPECT_NE(&t1.t_char, &t2.t_char);
+  EXPECT_NE(&t1.t_bool, &t2.t_bool);
+  EXPECT_NE(&t1.t_octet, &t2.t_octet);
+  EXPECT_NE(&t1.t_u8, &t2.t_u8);
+  EXPECT_NE(&t1.t_i8, &t2.t_i8);
+  EXPECT_NE(&t1.t_u16, &t2.t_u16);
+  EXPECT_NE(&t1.t_i16, &t2.t_i16);
+  EXPECT_NE(&t1.t_u32, &t2.t_u32);
+  EXPECT_NE(&t1.t_i32, &t2.t_i32);
+  EXPECT_NE(&t1.t_u64, &t2.t_u64);
+  EXPECT_NE(&t1.t_i64, &t2.t_i64);
+  EXPECT_NE(&t1.t_string, &t2.t_string);
+  EXPECT_NE(&t1.t_string[0], &t2.t_string[0]);
+  EXPECT_NE(&t1.t_wstring, &t2.t_wstring);
+  EXPECT_NE(&t1.t_wstring[0], &t2.t_wstring[0]);
+  EXPECT_NE(&t1.t_message, &t2.t_message);
+  EXPECT_NE(&t1.t_message[0], &t2.t_message[0]);
 
   EXPECT_TRUE(t1.t_float == t2.t_float);
   EXPECT_TRUE(t1.t_double == t2.t_double);
@@ -335,28 +336,28 @@ TEST(GenericMessage, dynamic_array_copy) {
   ASSERT_TRUE(m1.set(m2));
 
   // ensure they didn't somehow become the same pointer
-  EXPECT_FALSE(&t1 == &t2);
-  EXPECT_FALSE(t1.t_float.data() == t2.t_float.data());
-  EXPECT_FALSE(t1.t_double.data() == t2.t_double.data());
-  EXPECT_FALSE(t1.t_char.data() == t2.t_char.data());
+  EXPECT_NE(&t1, &t2);
+  EXPECT_NE(t1.t_float.data(), t2.t_float.data());
+  EXPECT_NE(t1.t_double.data(), t2.t_double.data());
+  EXPECT_NE(t1.t_char.data(), t2.t_char.data());
   // vector bool specialization does not provide a data method
-  EXPECT_FALSE(t1.t_octet.data() == t2.t_octet.data());
-  EXPECT_FALSE(t1.t_u8.data() == t2.t_u8.data());
-  EXPECT_FALSE(t1.t_i8.data() == t2.t_i8.data());
-  EXPECT_FALSE(t1.t_u16.data() == t2.t_u16.data());
-  EXPECT_FALSE(t1.t_i16.data() == t2.t_i16.data());
-  EXPECT_FALSE(t1.t_u32.data() == t2.t_u32.data());
-  EXPECT_FALSE(t1.t_i32.data() == t2.t_i32.data());
-  EXPECT_FALSE(t1.t_u64.data() == t2.t_u64.data());
-  EXPECT_FALSE(t1.t_i64.data() == t2.t_i64.data());
-  EXPECT_FALSE(t1.t_string.data() == t2.t_string.data());
-  EXPECT_FALSE(t1.t_wstring.data() == t2.t_wstring.data());
-  EXPECT_FALSE(t1.t_message.data() == t2.t_message.data());
+  EXPECT_NE(t1.t_octet.data(), t2.t_octet.data());
+  EXPECT_NE(t1.t_u8.data(), t2.t_u8.data());
+  EXPECT_NE(t1.t_i8.data(), t2.t_i8.data());
+  EXPECT_NE(t1.t_u16.data(), t2.t_u16.data());
+  EXPECT_NE(t1.t_i16.data(), t2.t_i16.data());
+  EXPECT_NE(t1.t_u32.data(), t2.t_u32.data());
+  EXPECT_NE(t1.t_i32.data(), t2.t_i32.data());
+  EXPECT_NE(t1.t_u64.data(), t2.t_u64.data());
+  EXPECT_NE(t1.t_i64.data(), t2.t_i64.data());
+  EXPECT_NE(t1.t_string.data(), t2.t_string.data());
+  EXPECT_NE(t1.t_wstring.data(), t2.t_wstring.data());
+  EXPECT_NE(t1.t_message.data(), t2.t_message.data());
   // check message pointers for sanity
   ASSERT_EQ(t1.t_message.size(), t2.t_message.size());  // should be 2
-  EXPECT_FALSE(&t1.t_message[0] == &t2.t_message[0]);
-  EXPECT_FALSE(&t1.t_message[1] == &t2.t_message[1]);
-  EXPECT_FALSE(&t1.t_message[0] == &t1.t_message[1]);
+  EXPECT_NE(&t1.t_message[0], &t2.t_message[0]);
+  EXPECT_NE(&t1.t_message[1], &t2.t_message[1]);
+  EXPECT_NE(&t1.t_message[0], &t1.t_message[1]);
 
   EXPECT_TRUE(t1.t_float == t2.t_float);
   EXPECT_TRUE(t1.t_double == t2.t_double);
@@ -458,29 +459,29 @@ TEST(GenericMessage, bounded_dynamic_array_copy) {
   ASSERT_TRUE(m1.set(m2));
 
   // ensure they didn't somehow become the same pointer
-  EXPECT_FALSE(&t1 == &t2);
+  EXPECT_NE(&t1, &t2);
   
-  EXPECT_FALSE(&t1.t_float[0] == &t2.t_float[0]);
-  EXPECT_FALSE(&t1.t_double[0] == &t2.t_double[0]);
-  EXPECT_FALSE(&t1.t_char[0] == &t2.t_char[0]);
+  EXPECT_NE(&t1.t_float[0], &t2.t_float[0]);
+  EXPECT_NE(&t1.t_double[0], &t2.t_double[0]);
+  EXPECT_NE(&t1.t_char[0], &t2.t_char[0]);
   // vector bool specialization does not provide a data method
-  EXPECT_FALSE(&t1.t_octet[0] == &t2.t_octet[0]);
-  EXPECT_FALSE(&t1.t_u8[0] == &t2.t_u8[0]);
-  EXPECT_FALSE(&t1.t_i8[0] == &t2.t_i8[0]);
-  EXPECT_FALSE(&t1.t_u16[0] == &t2.t_u16[0]);
-  EXPECT_FALSE(&t1.t_i16[0] == &t2.t_i16[0]);
-  EXPECT_FALSE(&t1.t_u32[0] == &t2.t_u32[0]);
-  EXPECT_FALSE(&t1.t_i32[0] == &t2.t_i32[0]);
-  EXPECT_FALSE(&t1.t_u64[0] == &t2.t_u64[0]);
-  EXPECT_FALSE(&t1.t_i64[0] == &t2.t_i64[0]);
-  EXPECT_FALSE(&t1.t_string[0] == &t2.t_string[0]);
-  EXPECT_FALSE(&t1.t_wstring[0] == &t2.t_wstring[0]);
-  EXPECT_FALSE(&t1.t_message[0] == &t2.t_message[0]);
+  EXPECT_NE(&t1.t_octet[0], &t2.t_octet[0]);
+  EXPECT_NE(&t1.t_u8[0], &t2.t_u8[0]);
+  EXPECT_NE(&t1.t_i8[0], &t2.t_i8[0]);
+  EXPECT_NE(&t1.t_u16[0], &t2.t_u16[0]);
+  EXPECT_NE(&t1.t_i16[0], &t2.t_i16[0]);
+  EXPECT_NE(&t1.t_u32[0], &t2.t_u32[0]);
+  EXPECT_NE(&t1.t_i32[0], &t2.t_i32[0]);
+  EXPECT_NE(&t1.t_u64[0], &t2.t_u64[0]);
+  EXPECT_NE(&t1.t_i64[0], &t2.t_i64[0]);
+  EXPECT_NE(&t1.t_string[0], &t2.t_string[0]);
+  EXPECT_NE(&t1.t_wstring[0], &t2.t_wstring[0]);
+  EXPECT_NE(&t1.t_message[0], &t2.t_message[0]);
   // check message pointers for sanity
   ASSERT_EQ(t1.t_message.size(), t2.t_message.size());  // should be 2
-  EXPECT_FALSE(&t1.t_message[0] == &t2.t_message[0]);
-  EXPECT_FALSE(&t1.t_message[1] == &t2.t_message[1]);
-  EXPECT_FALSE(&t1.t_message[0] == &t1.t_message[1]);
+  EXPECT_NE(&t1.t_message[0], &t2.t_message[0]);
+  EXPECT_NE(&t1.t_message[1], &t2.t_message[1]);
+  EXPECT_NE(&t1.t_message[0], &t1.t_message[1]);
 
   EXPECT_TRUE(t1.t_float == t2.t_float);
   EXPECT_TRUE(t1.t_double == t2.t_double);

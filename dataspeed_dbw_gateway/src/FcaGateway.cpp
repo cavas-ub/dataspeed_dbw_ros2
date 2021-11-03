@@ -7,14 +7,14 @@
 #include <dataspeed_dbw_msgs/msg/throttle_cmd.hpp>
 #include <dataspeed_dbw_msgs/msg/throttle_report.hpp>
 
-#include <dbw_ford_msgs/msg/brake_cmd.hpp>
-#include <dbw_ford_msgs/msg/brake_report.hpp>
-#include <dbw_ford_msgs/msg/gear_cmd.hpp>
-#include <dbw_ford_msgs/msg/gear_report.hpp>
-#include <dbw_ford_msgs/msg/steering_cmd.hpp>
-#include <dbw_ford_msgs/msg/steering_report.hpp>
-#include <dbw_ford_msgs/msg/throttle_cmd.hpp>
-#include <dbw_ford_msgs/msg/throttle_report.hpp>
+#include <dbw_fca_msgs/msg/brake_cmd.hpp>
+#include <dbw_fca_msgs/msg/brake_report.hpp>
+#include <dbw_fca_msgs/msg/gear_cmd.hpp>
+#include <dbw_fca_msgs/msg/gear_report.hpp>
+#include <dbw_fca_msgs/msg/steering_cmd.hpp>
+#include <dbw_fca_msgs/msg/steering_report.hpp>
+#include <dbw_fca_msgs/msg/throttle_cmd.hpp>
+#include <dbw_fca_msgs/msg/throttle_report.hpp>
 
 #include <rclcpp/rclcpp.hpp>
 
@@ -23,7 +23,7 @@
 namespace dataspeed_dbw_gateway {
 
 namespace common_ns = dataspeed_dbw_msgs::msg;
-namespace vehicle_ns = dbw_ford_msgs::msg;
+namespace vehicle_ns = dbw_fca_msgs::msg;
 
 // Message Name, Message Topic
 #define MESSAGE_LIST_N(X0, X1, X2, X3, X4, X5, X6, X7) \
@@ -45,9 +45,9 @@ namespace vehicle_ns = dbw_ford_msgs::msg;
  * Forward messages from topic `ds/cmd` to `vehicle/cmd` and convert types
  * Forward messages from topic `vehicle/report` to `ds/report` and convert types
  */
-class FordGateway : public rclcpp::Node {
+class FcaGateway : public rclcpp::Node {
 public:
-  FordGateway(const rclcpp::NodeOptions &options) : rclcpp::Node("gateway", options) {
+  FcaGateway(const rclcpp::NodeOptions &options) : rclcpp::Node("gateway", options) {
     // QOS options
     const auto QOS = rclcpp::QoS(2);
 
@@ -96,4 +96,4 @@ private:
 } // namespace dataspeed_dbw_gateway
 
 #include "rclcpp_components/register_node_macro.hpp"
-RCLCPP_COMPONENTS_REGISTER_NODE(dataspeed_dbw_gateway::FordGateway)
+RCLCPP_COMPONENTS_REGISTER_NODE(dataspeed_dbw_gateway::FcaGateway)

@@ -34,25 +34,30 @@
 #pragma once
 
 #include <cstring>
+#include <stdexcept>
+#include <string_view>
+#include <vector>
+
 #include <rosidl_typesupport_introspection_cpp/field_types.hpp>
 #include <rosidl_typesupport_introspection_cpp/message_introspection.hpp>
 #include <rosidl_typesupport_introspection_cpp/message_type_support_decl.hpp>
-#include <stdexcept>
-#include <string_view>
 
 namespace ros2_generic_message {
 
 using namespace rosidl_typesupport_introspection_cpp;
 
 static bool _is_copy_compatible(const MessageMember *dst, const MessageMember *src) {
-  return dst->type_id_ == src->type_id_ && dst->is_array_ == src->is_array_ && dst->array_size_ == src->array_size_ &&
-         dst->is_upper_bound_ == src->is_upper_bound_ && dst->string_upper_bound_ == src->string_upper_bound_;
+  return dst->type_id_ == src->type_id_
+      && dst->is_array_ == src->is_array_
+      && dst->array_size_ == src->array_size_
+      && dst->is_upper_bound_ == src->is_upper_bound_
+      && dst->string_upper_bound_ == src->string_upper_bound_;
 }
 
 class Msg {
- public:
+public:
   class MsgField {
-   public:
+  public:
     MsgField(const MessageMember *def, void *data)
         : def_(def), data_(reinterpret_cast<uint8_t *>(data) + def->offset_) {
     }
@@ -110,7 +115,7 @@ class Msg {
       return false;
     }
 
-   protected:
+  protected:
     template <typename T>
     bool copy_field(void *dst, const void *src) {
       if (!def_->is_array_) {
@@ -147,12 +152,13 @@ class Msg {
       return result;
     }
 
-   protected:
+  protected:
     const MessageMember *def_;
     void *data_;
 
     friend class Msg;
-  };
+  }; // class MsgField
+
   Msg(const rosidl_message_type_support_t *def, void *data)
       : Msg(reinterpret_cast<const MessageMembers *>(def->data), data) {
   }
@@ -196,7 +202,7 @@ class Msg {
     return result;
   }
 
- protected:
+protected:
   Msg(const MessageMembers *def, void *data) : def_(def), data_(data) {
   }
   const MessageMembers *def_;
@@ -207,9 +213,9 @@ class Msg {
 
 template <typename MsgType>
 class Message : public Msg {
- public:
+public:
   Message(const MsgType *msg) : Msg(get_message_type_support_handle<MsgType>(), (void *)msg) {
   }
 };
 
-}  // namespace ros2_generic_message
+} // namespace ros2_generic_message

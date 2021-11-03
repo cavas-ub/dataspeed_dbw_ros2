@@ -6,7 +6,7 @@
 #include <dataspeed_dbw_msgs/msg/steering_report.hpp>
 #include <dataspeed_dbw_msgs/msg/throttle_cmd.hpp>
 #include <dataspeed_dbw_msgs/msg/throttle_report.hpp>
-// you cannot use the #include directive in a macro
+
 #include <dbw_polaris_msgs/msg/brake_cmd.hpp>
 #include <dbw_polaris_msgs/msg/brake_report.hpp>
 #include <dbw_polaris_msgs/msg/gear_cmd.hpp>
@@ -18,7 +18,6 @@
 
 #include <rclcpp/rclcpp.hpp>
 
-// #include "message_copy.hpp"
 #include "generic_message.hpp"
 
 namespace dataspeed_dbw_gateway {
@@ -28,77 +27,73 @@ namespace vehicle_ns = dbw_polaris_msgs::msg;
 
 // Message Name, Message Topic
 #define MESSAGE_LIST_N(X0, X1, X2, X3, X4, X5, X6, X7) \
-  X0(BrakeCmd, brake_cmd)                              \
-  X1(BrakeReport, brake_report)                        \
-  X2(GearCmd, gear_cmd)                                \
-  X3(GearReport, gear_report)                          \
-  X4(SteeringCmd, steering_cmd)                        \
+  X0(BrakeCmd,       brake_cmd)                        \
+  X1(BrakeReport,    brake_report)                     \
+  X2(GearCmd,        gear_cmd)                         \
+  X3(GearReport,     gear_report)                      \
+  X4(SteeringCmd,    steering_cmd)                     \
   X5(SteeringReport, steering_report)                  \
-  X6(ThrottleCmd, throttle_cmd)                        \
-  X7(ThrottleReport, throttle_report)
+  X6(ThrottleCmd,    throttle_cmd)                     \
+  X7(ThrottleReport, throttle_report)                  \
 
-#define MESSAGE_LIST(X) MESSAGE_LIST_N(X, X, X, X, X, X, X, X)
 #define EMPTY(xn, xt)
+#define MESSAGE_LIST(C,R)   MESSAGE_LIST_N(C, R, C, R, C, R, C, R)
+#define MESSAGE_LIST_CMD(X) MESSAGE_LIST(X, EMPTY)
+#define MESSAGE_LIST_RPT(X) MESSAGE_LIST(EMPTY, X)
 
+/*
+ * Forward messages from topic `ds/cmd` to `vehicle/cmd` and convert types
+ * Forward messages from topic `vehicle/report` to `ds/report` and convert types
+ */
 class PolarisGateway : public rclcpp::Node {
- public:
+public:
   PolarisGateway(const rclcpp::NodeOptions &options) : rclcpp::Node("gateway", options) {
-    using std::placeholders::_1;
+    // QOS options
+    const auto QOS = rclcpp::QoS(2);
 
-    auto subOptions = rclcpp::SubscriptionOptions();
-    subOptions.ignore_local_publications = true;
+    // Node namespaces
+    auto node_vh = this; // Launch in the vehicle namespace
+    auto node_ds = create_sub_node("ds");
 
-
-    {
-      // vehicle publishers/subscribers
-      auto node = create_sub_node("vehicle");
-
-#define INIT_VEHICLE_PUB_SUB(xname, xtopic)                                            \
-  pubVeh##xname = node->create_publisher<vehicle_ns::xname>(#xtopic, rclcpp::QoS(10)); \
-  subVeh##xname = node->create_subscription<vehicle_ns::xname>(                        \
-      #xtopic, rclcpp::QoS(10),                                                        \
-      [this](vehicle_ns::xname::ConstSharedPtr msg) { onMessage(this->pubCommon##xname, msg); }, subOptions);
-
-      MESSAGE_LIST(INIT_VEHICLE_PUB_SUB)
-    }
-    {
-      // common publishers/subscribers
-      auto node = create_sub_node("ds");
-
-#define INIT_COMMON_PUB_SUB(xname, xtopic)                                               \
-  pubCommon##xname = node->create_publisher<common_ns::xname>(#xtopic, rclcpp::QoS(10)); \
-  subCommon##xname = node->create_subscription<common_ns::xname>(                        \
-      #xtopic, rclcpp::QoS(10),                                                          \
-      [this](common_ns::xname::ConstSharedPtr msg) { onMessage(this->pubVeh##xname, msg); }, subOptions);
-
-      MESSAGE_LIST(INIT_COMMON_PUB_SUB)
-    }
+    // Publish and subscribe
+    #define CMD_PUB_SUB(xname, xtopic) \
+    pub_vh_##xtopic = node_vh->create_publisher  <vehicle_ns::xname>(#xtopic, QOS); \
+    sub_ds_##xtopic = node_ds->create_subscription<common_ns::xname>(#xtopic, QOS, \
+        [this](common_ns::xname::ConstSharedPtr msg) { onMessage(this->pub_vh_##xtopic, msg); });
+    #define RPT_PUB_SUB(xname, xtopic) \
+    pub_ds_##xtopic = node_ds->create_publisher    <common_ns::xname>(#xtopic, QOS); \
+    sub_vh_##xtopic = node_vh->create_subscription<vehicle_ns::xname>(#xtopic, QOS, \
+        [this](vehicle_ns::xname::ConstSharedPtr msg) { onMessage(this->pub_ds_##xtopic, msg); });
+    MESSAGE_LIST(CMD_PUB_SUB, RPT_PUB_SUB)
+    #undef CMD_PUB_SUB
+    #undef RPT_PUB_SUB
   }
+
+private:
+  // Convert message to other type and publish
   template <typename In, typename Out>
   void onMessage(std::shared_ptr<rclcpp::Publisher<Out>> pub, const std::shared_ptr<const In> msg) {
     auto out = std::make_unique<Out>();
-    // dataspeed_message_inspector::MessageInspector<In> min(msg.get());
-    // dataspeed_message_inspector::MessageInspector<Out> mout(out.get());
-    // min.copy_to(&mout);
-    // dataspeed_message_copy::copy_message(msg, out.get());
-    ros2_generic_message::Message<In> msgIn(msg.get());
-    ros2_generic_message::Message<Out> msgOut(out.get());
-    msgOut.set(msgIn);
+    ros2_generic_message::Message<In> msg_in(msg.get());
+    ros2_generic_message::Message<Out> msg_out(out.get());
+    msg_out.set(msg_in);
     
     pub->publish(std::move(out));
   }
 
- private:
-#define DECLARE_PUB_SUB(xname, xtopic)                              \
-  rclcpp::Publisher<vehicle_ns::xname>::SharedPtr pubVeh##xname;    \
-  rclcpp::Publisher<common_ns::xname>::SharedPtr pubCommon##xname;  \
-  rclcpp::Subscription<vehicle_ns::xname>::SharedPtr subVeh##xname; \
-  rclcpp::Subscription<common_ns::xname>::SharedPtr subCommon##xname;
-  MESSAGE_LIST(DECLARE_PUB_SUB)
+  // Publishers and subscribers
+  #define DECLARE_PUB_SUB_CMD(xname, xtopic) \
+  rclcpp::Subscription<common_ns::xname>::SharedPtr sub_ds_##xtopic; \
+  rclcpp::Publisher  <vehicle_ns::xname>::SharedPtr pub_vh_##xtopic;
+  #define DECLARE_PUB_SUB_RPT(xname, xtopic) \
+  rclcpp::Subscription<vehicle_ns::xname>::SharedPtr sub_vh_##xtopic; \
+  rclcpp::Publisher    <common_ns::xname>::SharedPtr pub_ds_##xtopic;
+  MESSAGE_LIST(DECLARE_PUB_SUB_CMD, DECLARE_PUB_SUB_RPT)
+  #undef DECLARE_PUB_SUB_CMD
+  #undef DECLARE_PUB_SUB_RPT
 };
 
-}  // namespace dataspeed_dbw_gateway
+} // namespace dataspeed_dbw_gateway
 
 #include "rclcpp_components/register_node_macro.hpp"
-
 RCLCPP_COMPONENTS_REGISTER_NODE(dataspeed_dbw_gateway::PolarisGateway)

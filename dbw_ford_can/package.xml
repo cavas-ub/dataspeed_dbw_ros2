@@ -28,6 +28,7 @@
 
   <exec_depend>dataspeed_can_usb</exec_depend>
   <exec_depend>dbw_ford_description</exec_depend>
+  <exec_depend>dataspeed_dbw_gateway</exec_depend>
   <exec_depend>dataspeed_ulc_can</exec_depend>
 
   <export>

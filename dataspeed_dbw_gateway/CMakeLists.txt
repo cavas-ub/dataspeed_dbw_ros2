@@ -49,13 +49,13 @@ set(project_dependencies
 )
 
 add_library(${PROJECT_NAME}_fca SHARED
-  "src/FiatGateway.cpp"
+  "src/FcaGateway.cpp"
 )
 ament_target_dependencies(${PROJECT_NAME}_fca
   ${project_dependencies}
 )
 rclcpp_components_register_node(${PROJECT_NAME}_fca
-  PLUGIN "${PROJECT_NAME}::FiatGateway"
+  PLUGIN "${PROJECT_NAME}::FcaGateway"
   EXECUTABLE fca_gateway
 )
 
