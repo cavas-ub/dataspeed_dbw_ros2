@@ -1,9 +1,0 @@
-<library path="lib/libdataspeed_ulc_can">
-  <class name="dataspeed_ulc_can/UlcNodelet"
-         type="dataspeed_ulc_can::UlcNodelet"
-         base_class_type="nodelet::Nodelet">
-    <description>
-      Dataspeed Universal Lat/Lon Controller nodelet
-    </description>
-  </class>
-</library>

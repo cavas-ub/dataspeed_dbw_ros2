@@ -1,4 +1,4 @@
-Header header
+std_msgs/Header header
 
 # Brake pedal
 float32 brake_pc   # Brake pedal percent, range 0 to 1

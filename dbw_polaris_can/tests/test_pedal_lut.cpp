@@ -5,7 +5,7 @@
 #include <gtest/gtest.h>
 
 // File under test
-#include <dbw_polaris_can/pedal_lut.h>
+#include <dbw_polaris_can/pedal_lut.hpp>
 using namespace dbw_polaris_can;
 
 // Test converting from throttle percent to throttle pedal position
@@ -55,4 +55,3 @@ int main(int argc, char **argv)
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
-

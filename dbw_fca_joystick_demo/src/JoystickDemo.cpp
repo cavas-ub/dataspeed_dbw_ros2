@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2018-2019, Dataspeed Inc.
+ *  Copyright (c) 2018-2021, Dataspeed Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -32,83 +32,78 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#include "JoystickDemo.h"
+#include "JoystickDemo.hpp"
 
-JoystickDemo::JoystickDemo(ros::NodeHandle &node, ros::NodeHandle &priv_nh) : counter_(0)
-{
+#include <dataspeed_dbw_common/SimpleParams.hpp>
+
+namespace dbw_fca_joystick_demo {
+
+JoystickDemo::JoystickDemo(const rclcpp::NodeOptions& options) : rclcpp::Node("joy_demo", options) {
   joy_.axes.resize(AXIS_COUNT_X, 0);
   joy_.buttons.resize(BTN_COUNT_X, 0);
 
-  brake_ = true;
-  throttle_ = true;
-  steer_ = true;
-  shift_ = true;
-  signal_ = true;
-  priv_nh.getParam("brake", brake_);
-  priv_nh.getParam("throttle", throttle_);
-  priv_nh.getParam("steer", steer_);
-  priv_nh.getParam("shift", shift_);
-  priv_nh.getParam("signal", signal_);
+  dataspeed_dbw_common::SimpleParams params(this);
 
-  brake_gain_ = 1.0;
-  throttle_gain_ = 1.0;
-  priv_nh.getParam("brake_gain", brake_gain_);
-  priv_nh.getParam("throttle_gain", throttle_gain_);
+  params.get("brake", brake_, true);
+  params.get("throttle", throttle_, true);
+  params.get("steer", steer_, true);
+  params.get("shift", shift_, true);
+  params.get("signal", signal_, true);
+  params.get("brake_gain", brake_gain_, 1.0f);
+  params.get("throttle_gain", throttle_gain_, 1.0f);
+
   brake_gain_    = std::min(std::max(brake_gain_,    (float)0), (float)1);
   throttle_gain_ = std::min(std::max(throttle_gain_, (float)0), (float)1);
 
-  ignore_ = false;
-  enable_ = true;
-  count_ = false;
-  strq_ = false;
-  svel_ = 0.0;
   last_steering_filt_output_ = 0.0;
-  priv_nh.getParam("ignore", ignore_);
-  priv_nh.getParam("enable", enable_);
-  priv_nh.getParam("count", count_);
-  priv_nh.getParam("strq", strq_);
-  priv_nh.getParam("svel", svel_);
+  params.get("ignore", ignore_, false);
+  params.get("enable", enable_, true);
+  params.get("count", count_, false);
+  params.get("strq", strq_, false);
+  params.get("svel", svel_, 0.0f);
 
-  sub_joy_ = node.subscribe("/joy", 1, &JoystickDemo::recvJoy, this);
+  using std::placeholders::_1;
+  sub_joy_ = create_subscription<sensor_msgs::msg::Joy>("/joy", 1, std::bind(&JoystickDemo::recvJoy, this, _1));
 
   data_.brake_joy = 0.0;
-  data_.gear_cmd = dbw_fca_msgs::Gear::NONE;
+  data_.gear_cmd = dbw_fca_msgs::msg::Gear::NONE;
   data_.steering_joy = 0.0;
   data_.steering_mult = false;
   data_.throttle_joy = 0.0;
-  data_.turn_signal_cmd = dbw_fca_msgs::TurnSignal::NONE;
-  data_.door_select = dbw_fca_msgs::DoorCmd::NONE;
-  data_.door_action = dbw_fca_msgs::DoorCmd::NONE;
+  data_.turn_signal_cmd = dbw_fca_msgs::msg::TurnSignal::NONE;
+  data_.door_select = dbw_fca_msgs::msg::DoorCmd::NONE;
+  data_.door_action = dbw_fca_msgs::msg::DoorCmd::NONE;
   data_.joy_throttle_valid = false;
   data_.joy_brake_valid = false;
 
   if (brake_) {
-    pub_brake_ = node.advertise<dbw_fca_msgs::BrakeCmd>("brake_cmd", 1);
+    pub_brake_ = create_publisher<dbw_fca_msgs::msg::BrakeCmd>("brake_cmd", 1);
   }
   if (throttle_) {
-    pub_throttle_ = node.advertise<dbw_fca_msgs::ThrottleCmd>("throttle_cmd", 1);
+    pub_throttle_ = create_publisher<dbw_fca_msgs::msg::ThrottleCmd>("throttle_cmd", 1);
   }
   if (steer_) {
-    pub_steering_ = node.advertise<dbw_fca_msgs::SteeringCmd>("steering_cmd", 1);
+    pub_steering_ = create_publisher<dbw_fca_msgs::msg::SteeringCmd>("steering_cmd", 1);
   }
   if (shift_) {
-    pub_gear_ = node.advertise<dbw_fca_msgs::GearCmd>("gear_cmd", 1);
+    pub_gear_ = create_publisher<dbw_fca_msgs::msg::GearCmd>("gear_cmd", 1);
   }
   if (signal_) {
-    pub_turn_signal_ = node.advertise<dbw_fca_msgs::TurnSignalCmd>("turn_signal_cmd", 1);
+    pub_turn_signal_ = create_publisher<dbw_fca_msgs::msg::MiscCmd>("turn_signal_cmd", 1);
   }
   if (enable_) {
-    pub_enable_ = node.advertise<std_msgs::Empty>("enable", 1);
-    pub_disable_ = node.advertise<std_msgs::Empty>("disable", 1);
+    pub_enable_ = create_publisher<std_msgs::msg::Empty>("enable", 1);
+    pub_disable_ = create_publisher<std_msgs::msg::Empty>("disable", 1);
   }
 
-  timer_ = node.createTimer(ros::Duration(0.02), &JoystickDemo::cmdCallback, this);
+  // Initilize timestamp to be old (timeout)
+  data_.stamp = now() - std::chrono::seconds(1);
+  timer_ = create_wall_timer(std::chrono::milliseconds(20), std::bind(&JoystickDemo::cmdCallback, this));
 }
 
-void JoystickDemo::cmdCallback(const ros::TimerEvent& event)
-{
+void JoystickDemo::cmdCallback() {
   // Detect joy timeouts and reset
-  if (event.current_real - data_.stamp > ros::Duration(0.1)) {
+  if (now() - data_.stamp > std::chrono::milliseconds(100)) {
     data_.joy_throttle_valid = false;
     data_.joy_brake_valid = false;
     last_steering_filt_output_ = 0.0;
@@ -122,40 +117,40 @@ void JoystickDemo::cmdCallback(const ros::TimerEvent& event)
 
   // Brake
   if (brake_) {
-    dbw_fca_msgs::BrakeCmd msg;
+    dbw_fca_msgs::msg::BrakeCmd msg;
     msg.enable = true;
     msg.ignore = ignore_;
     msg.count = counter_;
-    msg.pedal_cmd_type = dbw_fca_msgs::BrakeCmd::CMD_PERCENT;
+    msg.pedal_cmd_type = dbw_fca_msgs::msg::BrakeCmd::CMD_PERCENT;
     msg.pedal_cmd = data_.brake_joy * brake_gain_;
-    pub_brake_.publish(msg);
+    pub_brake_->publish(msg);
   }
 
   // Throttle
   if (throttle_) {
-    dbw_fca_msgs::ThrottleCmd msg;
+    dbw_fca_msgs::msg::ThrottleCmd msg;
     msg.enable = true;
     msg.ignore = ignore_;
     msg.count = counter_;
-    msg.pedal_cmd_type = dbw_fca_msgs::ThrottleCmd::CMD_PERCENT;
+    msg.pedal_cmd_type = dbw_fca_msgs::msg::ThrottleCmd::CMD_PERCENT;
     msg.pedal_cmd = data_.throttle_joy * throttle_gain_;
-    pub_throttle_.publish(msg);
+    pub_throttle_->publish(msg);
   }
 
   // Steering
   if (steer_) {
-    dbw_fca_msgs::SteeringCmd msg;
+    dbw_fca_msgs::msg::SteeringCmd msg;
     msg.enable = true;
     msg.ignore = ignore_;
     msg.count = counter_;
     if (!strq_) {
-      msg.cmd_type = dbw_fca_msgs::SteeringCmd::CMD_ANGLE;
+      msg.cmd_type = dbw_fca_msgs::msg::SteeringCmd::CMD_ANGLE;
 
       float raw_steering_cmd;
       if (data_.steering_mult) {
-        raw_steering_cmd = dbw_fca_msgs::SteeringCmd::ANGLE_MAX * data_.steering_joy;
+        raw_steering_cmd = dbw_fca_msgs::msg::SteeringCmd::ANGLE_MAX * data_.steering_joy;
       } else {
-        raw_steering_cmd = 0.5 * dbw_fca_msgs::SteeringCmd::ANGLE_MAX * data_.steering_joy;
+        raw_steering_cmd = 0.5 * dbw_fca_msgs::msg::SteeringCmd::ANGLE_MAX * data_.steering_joy;
       }
 
       float tau = 0.1;
@@ -165,43 +160,47 @@ void JoystickDemo::cmdCallback(const ros::TimerEvent& event)
       msg.steering_wheel_angle_velocity = svel_;
       msg.steering_wheel_angle_cmd = filtered_steering_cmd;
     } else {
-      msg.cmd_type = dbw_fca_msgs::SteeringCmd::CMD_TORQUE;
-      msg.steering_wheel_torque_cmd = dbw_fca_msgs::SteeringCmd::TORQUE_MAX * data_.steering_joy;
+      msg.cmd_type = dbw_fca_msgs::msg::SteeringCmd::CMD_TORQUE;
+      msg.steering_wheel_torque_cmd = dbw_fca_msgs::msg::SteeringCmd::TORQUE_MAX * data_.steering_joy;
     }
-    pub_steering_.publish(msg);
+    pub_steering_->publish(msg);
   }
 
   // Gear
   if (shift_) {
-    if (data_.gear_cmd != dbw_fca_msgs::Gear::NONE) {
-      dbw_fca_msgs::GearCmd msg;
+    if (data_.gear_cmd != dbw_fca_msgs::msg::Gear::NONE) {
+      dbw_fca_msgs::msg::GearCmd msg;
       msg.cmd.gear = data_.gear_cmd;
-      pub_gear_.publish(msg);
+      pub_gear_->publish(msg);
     }
   }
 
   // Turn signal
   if (signal_) {
-    dbw_fca_msgs::TurnSignalCmd msg;
+    dbw_fca_msgs::msg::MiscCmd msg;
     msg.cmd.value = data_.turn_signal_cmd;
     msg.door.select = data_.door_select;
     msg.door.action = data_.door_action;
-    pub_turn_signal_.publish(msg);
+    pub_turn_signal_->publish(msg);
   }
 }
 
-void JoystickDemo::recvJoy(const sensor_msgs::Joy::ConstPtr& msg)
-{
+void JoystickDemo::recvJoy(const sensor_msgs::msg::Joy::ConstSharedPtr msg) {
   // Check for expected sizes
   if (msg->axes.size() != (size_t)AXIS_COUNT_X && msg->buttons.size() != (size_t)BTN_COUNT_X) {
     if (msg->axes.size() == (size_t)AXIS_COUNT_D && msg->buttons.size() == (size_t)BTN_COUNT_D) {
-      ROS_ERROR_THROTTLE(2.0, "Detected Logitech Gamepad F310 in DirectInput (D) mode. Please select (X) with the switch on the back to select XInput mode.");
+      RCLCPP_ERROR_THROTTLE(
+          get_logger(), *get_clock(), 2e3,
+          "Detected Logitech Gamepad F310 in DirectInput (D) mode. Please select (X) with the switch on "
+          "the back to select XInput mode.");
     }
     if (msg->axes.size() != (size_t)AXIS_COUNT_X) {
-      ROS_ERROR_THROTTLE(2.0, "Expected %zu joy axis count, received %zu", (size_t)AXIS_COUNT_X, msg->axes.size());
+      RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), 2e3, "Expected %zu joy axis count, received %zu",
+                            (size_t)AXIS_COUNT_X, msg->axes.size());
     }
     if (msg->buttons.size() != (size_t)BTN_COUNT_X) {
-      ROS_ERROR_THROTTLE(2.0, "Expected %zu joy button count, received %zu", (size_t)BTN_COUNT_X, msg->buttons.size());
+      RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), 2e3, "Expected %zu joy button count, received %zu",
+                            (size_t)BTN_COUNT_X, msg->buttons.size());
     }
     return;
   }
@@ -226,44 +225,48 @@ void JoystickDemo::recvJoy(const sensor_msgs::Joy::ConstPtr& msg)
 
   // Gear
   if (msg->buttons[BTN_PARK]) {
-    data_.gear_cmd = dbw_fca_msgs::Gear::PARK;
+    data_.gear_cmd = dbw_fca_msgs::msg::Gear::PARK;
   } else if (msg->buttons[BTN_REVERSE]) {
-    data_.gear_cmd = dbw_fca_msgs::Gear::REVERSE;
+    data_.gear_cmd = dbw_fca_msgs::msg::Gear::REVERSE;
   } else if (msg->buttons[BTN_DRIVE]) {
-    data_.gear_cmd = dbw_fca_msgs::Gear::DRIVE;
+    data_.gear_cmd = dbw_fca_msgs::msg::Gear::DRIVE;
   } else if (msg->buttons[BTN_NEUTRAL]) {
-    data_.gear_cmd = dbw_fca_msgs::Gear::NEUTRAL;
+    data_.gear_cmd = dbw_fca_msgs::msg::Gear::NEUTRAL;
   } else {
-    data_.gear_cmd = dbw_fca_msgs::Gear::NONE;
+    data_.gear_cmd = dbw_fca_msgs::msg::Gear::NONE;
   }
 
   // Steering
-  data_.steering_joy = (fabs(msg->axes[AXIS_STEER_1]) > fabs(msg->axes[AXIS_STEER_2])) ? msg->axes[AXIS_STEER_1] : msg->axes[AXIS_STEER_2];
+  if (fabs(msg->axes[AXIS_STEER_1]) > fabs(msg->axes[AXIS_STEER_2])) {
+    data_.steering_joy = msg->axes[AXIS_STEER_1];
+  } else {
+    data_.steering_joy = msg->axes[AXIS_STEER_2];
+  }
   data_.steering_mult = msg->buttons[BTN_STEER_MULT_1] || msg->buttons[BTN_STEER_MULT_2];
 
   // Turn signal
   if (msg->axes[AXIS_TURN_SIG] != joy_.axes[AXIS_TURN_SIG]) {
     if (fabs(msg->axes[AXIS_DOOR_ACTION]) < 0.5) {
       switch (data_.turn_signal_cmd) {
-        case dbw_fca_msgs::TurnSignal::NONE:
+        case dbw_fca_msgs::msg::TurnSignal::NONE:
           if (msg->axes[AXIS_TURN_SIG] < -0.5) {
-            data_.turn_signal_cmd = dbw_fca_msgs::TurnSignal::RIGHT;
+            data_.turn_signal_cmd = dbw_fca_msgs::msg::TurnSignal::RIGHT;
           } else if (msg->axes[AXIS_TURN_SIG] > 0.5) {
-            data_.turn_signal_cmd = dbw_fca_msgs::TurnSignal::LEFT;
+            data_.turn_signal_cmd = dbw_fca_msgs::msg::TurnSignal::LEFT;
           }
           break;
-        case dbw_fca_msgs::TurnSignal::LEFT:
+        case dbw_fca_msgs::msg::TurnSignal::LEFT:
           if (msg->axes[AXIS_TURN_SIG] < -0.5) {
-            data_.turn_signal_cmd = dbw_fca_msgs::TurnSignal::RIGHT;
+            data_.turn_signal_cmd = dbw_fca_msgs::msg::TurnSignal::RIGHT;
           } else if (msg->axes[AXIS_TURN_SIG] > 0.5) {
-            data_.turn_signal_cmd = dbw_fca_msgs::TurnSignal::NONE;
+            data_.turn_signal_cmd = dbw_fca_msgs::msg::TurnSignal::NONE;
           }
           break;
-        case dbw_fca_msgs::TurnSignal::RIGHT:
+        case dbw_fca_msgs::msg::TurnSignal::RIGHT:
           if (msg->axes[AXIS_TURN_SIG] < -0.5) {
-            data_.turn_signal_cmd = dbw_fca_msgs::TurnSignal::NONE;
+            data_.turn_signal_cmd = dbw_fca_msgs::msg::TurnSignal::NONE;
           } else if (msg->axes[AXIS_TURN_SIG] > 0.5) {
-            data_.turn_signal_cmd = dbw_fca_msgs::TurnSignal::LEFT;
+            data_.turn_signal_cmd = dbw_fca_msgs::msg::TurnSignal::LEFT;
           }
           break;
       }
@@ -271,46 +274,50 @@ void JoystickDemo::recvJoy(const sensor_msgs::Joy::ConstPtr& msg)
   }
 
   // Doors and trunk
-  data_.door_select = dbw_fca_msgs::DoorCmd::NONE;
-  data_.door_action = dbw_fca_msgs::DoorCmd::NONE;
+  data_.door_select = dbw_fca_msgs::msg::DoorCmd::NONE;
+  data_.door_action = dbw_fca_msgs::msg::DoorCmd::NONE;
   if (msg->buttons[BTN_TRUNK_OPEN]) {
-    data_.door_select = dbw_fca_msgs::DoorCmd::TRUNK;
-    data_.door_action = dbw_fca_msgs::DoorCmd::OPEN;
+    data_.door_select = dbw_fca_msgs::msg::DoorCmd::TRUNK;
+    data_.door_action = dbw_fca_msgs::msg::DoorCmd::OPEN;
   } else if (msg->buttons[BTN_TRUNK_CLOSE]) {
-    data_.door_select = dbw_fca_msgs::DoorCmd::TRUNK;
-    data_.door_action = dbw_fca_msgs::DoorCmd::CLOSE;
+    data_.door_select = dbw_fca_msgs::msg::DoorCmd::TRUNK;
+    data_.door_action = dbw_fca_msgs::msg::DoorCmd::CLOSE;
   }
   if (msg->axes[AXIS_DOOR_ACTION] > 0.5) {
     if (msg->axes[AXIS_DOOR_SELECT] < -0.5) {
-      data_.door_select = dbw_fca_msgs::DoorCmd::RIGHT;
-      data_.door_action = dbw_fca_msgs::DoorCmd::OPEN;
+      data_.door_select = dbw_fca_msgs::msg::DoorCmd::RIGHT;
+      data_.door_action = dbw_fca_msgs::msg::DoorCmd::OPEN;
     } else if (msg->axes[AXIS_TURN_SIG] > 0.5) {
-      data_.door_select = dbw_fca_msgs::DoorCmd::LEFT;
-      data_.door_action = dbw_fca_msgs::DoorCmd::OPEN;
+      data_.door_select = dbw_fca_msgs::msg::DoorCmd::LEFT;
+      data_.door_action = dbw_fca_msgs::msg::DoorCmd::OPEN;
     }
   }
   if (msg->axes[AXIS_DOOR_ACTION] < -0.5) {
     if (msg->axes[AXIS_DOOR_SELECT] < -0.5) {
-      data_.door_select = dbw_fca_msgs::DoorCmd::RIGHT;
-      data_.door_action = dbw_fca_msgs::DoorCmd::CLOSE;
+      data_.door_select = dbw_fca_msgs::msg::DoorCmd::RIGHT;
+      data_.door_action = dbw_fca_msgs::msg::DoorCmd::CLOSE;
     } else if (msg->axes[AXIS_TURN_SIG] > 0.5) {
-      data_.door_select = dbw_fca_msgs::DoorCmd::LEFT;
-      data_.door_action = dbw_fca_msgs::DoorCmd::CLOSE;
+      data_.door_select = dbw_fca_msgs::msg::DoorCmd::LEFT;
+      data_.door_action = dbw_fca_msgs::msg::DoorCmd::CLOSE;
     }
   }
 
   // Optional enable and disable buttons
   if (enable_) {
-    const std_msgs::Empty empty;
+    const std_msgs::msg::Empty empty;
     if (msg->buttons[BTN_ENABLE]) {
-      pub_enable_.publish(empty);
+      pub_enable_->publish(empty);
     }
     if (msg->buttons[BTN_DISABLE]) {
-      pub_disable_.publish(empty);
+      pub_disable_->publish(empty);
     }
   }
 
-  data_.stamp = ros::Time::now();
+  data_.stamp = now();
   joy_ = *msg;
 }
 
+} // namespace dbw_fca_joystick_demo
+
+#include "rclcpp_components/register_node_macro.hpp"
+RCLCPP_COMPONENTS_REGISTER_NODE(dbw_fca_joystick_demo::JoystickDemo)

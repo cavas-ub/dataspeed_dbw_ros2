@@ -1,4 +1,4 @@
-Header header
+std_msgs/Header header
 
 # Vehicle Decceleration (m/s^2)
 float32 decel

@@ -1,4 +1,4 @@
-Header header
+std_msgs/Header header
 
 # Tire pressures (kPa)
 float32 front_left

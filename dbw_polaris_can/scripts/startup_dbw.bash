@@ -4,12 +4,12 @@
 # gnome-terminal -e "/path/to/this/file/startup_dbw.bash"
 
 # Source ROS source or binary workspace
-if [ -e "$HOME/dbw_ws/devel/setup.bash" ]; then
-  source $HOME/dbw_ws/devel/setup.bash
+if [ -e "$HOME/dbw_ws/install/setup.bash" ]; then
+  source $HOME/dbw_ws/install/setup.bash
 else
   source `find /opt/ros -name setup.bash | sort -r | head -1`
 fi
 
 # Launch
-roslaunch dbw_polaris_can dbw.launch
+ros2 launch dbw_polaris_can dbw.launch.xml
 

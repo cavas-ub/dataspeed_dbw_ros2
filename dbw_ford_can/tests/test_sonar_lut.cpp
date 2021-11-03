@@ -5,7 +5,7 @@
 #include <gtest/gtest.h>
 
 // File under test
-#include <dbw_ford_can/sonar_lut.h>
+#include <dbw_ford_can/sonar_lut.hpp>
 using namespace dbw_ford_can;
 
 // Test converting sonar ranges
@@ -58,4 +58,3 @@ int main(int argc, char **argv)
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
-

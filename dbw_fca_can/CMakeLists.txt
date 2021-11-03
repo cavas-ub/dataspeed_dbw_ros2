@@ -1,83 +1,82 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.5)
 project(dbw_fca_can)
 
-find_package(catkin REQUIRED COMPONENTS
-  rospy
-  roscpp
-  nodelet
-  std_msgs
-  geometry_msgs
-  sensor_msgs
-  can_msgs
-  dataspeed_can_msg_filters
-  dbw_fca_msgs
-)
+# Default to C++17
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 17)
+endif()
+
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+find_package(ament_cmake_ros REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
+find_package(dataspeed_dbw_common REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(can_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(dbw_fca_msgs REQUIRED)
+find_package(dataspeed_can_msg_filters REQUIRED)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   message(STATUS "Enabling coverage testing")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
 endif()
 
-if (NOT "${CMAKE_CXX_STANDARD_COMPUTED_DEFAULT}")
-  message(STATUS "Changing CXX_STANDARD from C++98 to C++17")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
-elseif ("${CMAKE_CXX_STANDARD_COMPUTED_DEFAULT}" STREQUAL "98")
-  message(STATUS "Changing CXX_STANDARD from C++98 to C++17")
-  set(CMAKE_CXX_STANDARD 17)
-elseif ("${CMAKE_CXX_STANDARD_COMPUTED_DEFAULT}" STREQUAL "11")
-  message(STATUS "Changing CXX_STANDARD from C++11 to C++17")
-  set(CMAKE_CXX_STANDARD 17)
-elseif ("${CMAKE_CXX_STANDARD_COMPUTED_DEFAULT}" STREQUAL "14")
-  message(STATUS "Changing CXX_STANDARD from C++14 to C++17")
-  set(CMAKE_CXX_STANDARD 17)
-endif()
-
-catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES ${PROJECT_NAME}
+add_library(${PROJECT_NAME} SHARED
+  "src/DbwNode.cpp"
 )
 
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
+ament_target_dependencies(${PROJECT_NAME}
+  "rclcpp_components"
+  "rclcpp"
+  "dataspeed_dbw_common"
+  "std_msgs"
+  "can_msgs"
+  "sensor_msgs"
+  "geometry_msgs"
+  "dbw_fca_msgs"
+  "dataspeed_can_msg_filters"
 )
 
-add_library(${PROJECT_NAME}
-  src/nodelet.cpp
-  src/DbwNode.cpp
-)
-add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}
-  ${catkin_LIBRARIES}
+target_include_directories(
+  ${PROJECT_NAME} PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
 )
 
-add_executable(${PROJECT_NAME}_dbw_node
-  src/node.cpp
+install(TARGETS ${PROJECT_NAME}
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
 )
-add_dependencies(${PROJECT_NAME}_dbw_node ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}_dbw_node
-  ${PROJECT_NAME}
-)
-set_target_properties(${PROJECT_NAME}_dbw_node PROPERTIES OUTPUT_NAME dbw_node PREFIX "")
 
-install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_dbw_node
-        RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-        LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+rclcpp_components_register_node(${PROJECT_NAME}
+  PLUGIN "${PROJECT_NAME}::DbwNode"
+  EXECUTABLE dbw_node
 )
-install(DIRECTORY include/${PROJECT_NAME}/
-        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+
+install(DIRECTORY include/
+  DESTINATION include
 )
+
 install(DIRECTORY scripts
-        DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-        USE_SOURCE_PERMISSIONS
-)
-install(FILES nodelets.xml
-        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-)
-install(DIRECTORY launch
-        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  DESTINATION lib/${PROJECT_NAME}
+  USE_SOURCE_PERMISSIONS
 )
 
-if (CATKIN_ENABLE_TESTING)
-  add_subdirectory(tests)
+install(DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+)
+
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+  
+  ament_add_gtest(${PROJECT_NAME}_test_pedal_lut "tests/test_pedal_lut.cpp")
+  target_include_directories(${PROJECT_NAME}_test_pedal_lut PUBLIC "include")
 endif()
+
+ament_package()

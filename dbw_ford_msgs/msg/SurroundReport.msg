@@ -1,4 +1,4 @@
-Header header
+std_msgs/Header header
 
 # Cross Traffic Alert (CTA)
 bool cta_left_alert

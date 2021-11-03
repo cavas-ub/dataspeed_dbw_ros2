@@ -1,8 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Software License Agreement (BSD License)
 #
-# Copyright (c) 2020, Dataspeed Inc.
+# Copyright (c) 2020-2021, Dataspeed Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -28,49 +28,54 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import rospy
+import rclpy
+from rclpy.node import Node
 import math
 
 from std_msgs.msg import Bool
 from dbw_polaris_msgs.msg import ThrottleCmd
 
+class SineTest(Node):
+  def __init__(self):
+    super().__init__('sine_test')
+    latch_like_qos = rclpy.qos.QoSProfile(depth=1,durability=rclpy.qos.DurabilityPolicy.RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL)
+    self.pub = self.create_publisher(ThrottleCmd, '/vehicle/throttle_cmd', 1)
+    self.sub = self.create_subscription(Bool, '/vehicle/dbw_enabled', self.recv_enable, latch_like_qos)
 
-class SineTest:
-    def __init__(self):
-        rospy.init_node('sine_test')
-        self.pub = rospy.Publisher('/vehicle/throttle_cmd', ThrottleCmd, queue_size=1)
-        self.sub = rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.recv_enable)
+    self.high_peak = self.declare_parameter('~/high_peak', 0.80).value
+    self.low_peak = self.declare_parameter('~/low_peak', 0.20).value
+    self.period = self.declare_parameter('~/period', 4).value
 
-        self.high_peak = rospy.get_param('~high_peak', 0.80)
-        self.low_peak = rospy.get_param('~low_peak', 0.20)
-        self.period = rospy.get_param('~period', 4)
+    self.enabled = False
+    self.t = 0
+    self.sample_time = 0.02
+    self.create_timer(self.sample_time, self.timer_cb)
 
-        self.enabled = False
-        self.t = 0
-        self.sample_time = 0.02
+  def timer_cb(self):
+    if not self.enabled:
+      self.t = 0
+      return
 
-        rospy.Timer(rospy.Duration(self.sample_time), self.timer_cb)
+    amplitude = 0.5 * (self.high_peak - self.low_peak)
+    offset = 0.5 * (self.high_peak + self.low_peak)
+    cmd = offset - amplitude * math.cos(2 * math.pi / self.period * self.t)
+    self.t += self.sample_time
 
-    def timer_cb(self, event):
-        if not self.enabled:
-            self.t = 0
-            return
+    msg = ThrottleCmd()
+    msg.enable = True
+    msg.pedal_cmd_type = ThrottleCmd.CMD_PEDAL
+    msg.pedal_cmd = cmd
+    self.pub.publish(msg)
 
-        amplitude = 0.5 * (self.high_peak - self.low_peak)
-        offset = 0.5 * (self.high_peak + self.low_peak)
-        cmd = offset - amplitude * math.cos(2 * math.pi / self.period * self.t)
-        self.t += self.sample_time
+  def recv_enable(self, msg):
+    self.enabled = msg.data
 
-        self.pub.publish(ThrottleCmd(enable=True, pedal_cmd_type=ThrottleCmd.CMD_PEDAL, pedal_cmd=cmd))
-
-    def recv_enable(self, msg):
-        self.enabled = msg.data
-
+def main(args=None):
+  rclpy.init(args=args)
+  node = SineTest()
+  rclpy.spin(node)
+  node.destroy_node()
+  rclpy.shutdown()
 
 if __name__ == '__main__':
-    try:
-        node_instance = SineTest()
-        rospy.spin()
-    except rospy.ROSInterruptException:
-        pass
-
+  main()

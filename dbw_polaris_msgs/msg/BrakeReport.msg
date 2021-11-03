@@ -1,4 +1,4 @@
-Header header
+std_msgs/Header header
 
 # Braking torque (Nm)
 float32 torque_input

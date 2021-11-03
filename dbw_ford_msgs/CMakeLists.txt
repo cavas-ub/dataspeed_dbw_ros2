@@ -1,57 +1,50 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.5)
 project(dbw_ford_msgs)
 
-find_package(catkin REQUIRED COMPONENTS
-  message_generation
-  std_msgs
-  geometry_msgs
+# find dependencies
+find_package(ament_cmake REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/AmbientLight.msg"
+  "msg/BrakeCmd.msg"
+  "msg/BrakeInfoReport.msg"
+  "msg/BrakeReport.msg"
+  "msg/DriverAssistReport.msg"
+  "msg/FuelLevelReport.msg"
+  "msg/GearCmd.msg"
+  "msg/Gear.msg"
+  "msg/GearNum.msg"
+  "msg/GearReject.msg"
+  "msg/GearReport.msg"
+  "msg/HillStartAssist.msg"
+  "msg/Ignition.msg"
+  "msg/Misc1Report.msg"
+  "msg/ParkingBrake.msg"
+  "msg/QualityFactor.msg"
+  "msg/SteeringCmd.msg"
+  "msg/SteeringReport.msg"
+  "msg/SurroundReport.msg"
+  "msg/ThrottleCmd.msg"
+  "msg/ThrottleInfoReport.msg"
+  "msg/ThrottleReport.msg"
+  "msg/TirePressureReport.msg"
+  "msg/TurnSignalCmd.msg"
+  "msg/TurnSignal.msg"
+  "msg/TwistCmd.msg"
+  "msg/WatchdogCounter.msg"
+  "msg/WheelPositionReport.msg"
+  "msg/WheelSpeedReport.msg"
+  "msg/Wiper.msg"
+  DEPENDENCIES
+  "std_msgs"
+  "geometry_msgs"
 )
 
-add_message_files(DIRECTORY msg FILES
-  AmbientLight.msg
-  BrakeCmd.msg
-  BrakeInfoReport.msg
-  BrakeReport.msg
-  DriverAssistReport.msg
-  FuelLevelReport.msg
-  Gear.msg
-  GearCmd.msg
-  GearNum.msg
-  GearReject.msg
-  GearReport.msg
-  HillStartAssist.msg
-  Ignition.msg
-  Misc1Report.msg
-  ParkingBrake.msg
-  QualityFactor.msg
-  SteeringCmd.msg
-  SteeringReport.msg
-  SurroundReport.msg
-  ThrottleCmd.msg
-  ThrottleInfoReport.msg
-  ThrottleReport.msg
-  TirePressureReport.msg
-  TurnSignal.msg
-  TurnSignalCmd.msg
-  TwistCmd.msg
-  WatchdogCounter.msg
-  WheelPositionReport.msg
-  WheelSpeedReport.msg
-  Wiper.msg
-)
+install(
+  FILES "mapping_rules.yaml"
+  DESTINATION share/${PROJECT_NAME})
 
-generate_messages(DEPENDENCIES
-  std_msgs
-  geometry_msgs
-)
-
-catkin_package(CATKIN_DEPENDS
-  message_runtime
-  std_msgs
-  geometry_msgs
-)
-
-install(DIRECTORY bmr
-        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-        FILES_MATCHING PATTERN "*.bmr"
-)
+ament_package()

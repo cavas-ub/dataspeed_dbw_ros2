@@ -1,9 +1,7 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.5)
 project(dbw_fca_description)
 
-find_package(catkin REQUIRED)
-
-catkin_package()
+find_package(ament_cmake_ros REQUIRED)
 
 # Uncompress meshes in root of meshes folder
 FILE(GLOB files RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/meshes" "${CMAKE_CURRENT_SOURCE_DIR}/meshes/*.tar.gz")
@@ -16,10 +14,8 @@ FOREACH(filename ${files})
 ENDFOREACH(filename)
 
 install(DIRECTORY meshes urdf launch
-        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+        DESTINATION share/${PROJECT_NAME}
         PATTERN *.tar.gz EXCLUDE
 )
 
-if (CATKIN_ENABLE_TESTING)
-  add_subdirectory(tests)
-endif()
+ament_package()

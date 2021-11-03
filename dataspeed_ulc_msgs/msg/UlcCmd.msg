@@ -1,3 +1,4 @@
+std_msgs/Header header
 bool clear
 bool enable_pedals
 bool enable_steering

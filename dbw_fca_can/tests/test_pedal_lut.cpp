@@ -5,7 +5,7 @@
 #include <gtest/gtest.h>
 
 // File under test
-#include <dbw_fca_can/pedal_lut.h>
+#include <dbw_fca_can/pedal_lut.hpp>
 using namespace dbw_fca_can;
 
 // Test converting from brake pedal position to brake torque
@@ -135,4 +135,3 @@ int main(int argc, char **argv)
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
-

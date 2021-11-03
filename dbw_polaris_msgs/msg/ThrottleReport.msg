@@ -1,4 +1,4 @@
-Header header
+std_msgs/Header header
 
 # Throttle pedal
 # Unitless, range 0.20 to 0.80

@@ -1,4 +1,4 @@
-Header header
+std_msgs/Header header
 
 # Throttle Pedal
 float32 throttle_pc   # Throttle pedal percent, range 0 to 1

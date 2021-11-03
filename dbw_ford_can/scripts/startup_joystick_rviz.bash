@@ -4,12 +4,11 @@
 # gnome-terminal -e "/path/to/this/file/startup_joystick_rviz.bash"
 
 # Source ROS source or binary workspace
-if [ -e "$HOME/dbw_ws/devel/setup.bash" ]; then
-  source $HOME/dbw_ws/devel/setup.bash
+if [ -e "$HOME/dbw_ws/install/setup.bash" ]; then
+  source $HOME/dbw_ws/install/setup.bash
 else
-  source `find /opt/ros -name setup.bash | sort -r | head -1`
+  source `find /opt/ros -name setup.bash | sort | head -1`
 fi
 
 # Launch
-roslaunch dbw_ford_joystick_demo joystick_demo.launch sys:=true rviz:=true
-
+ros2 launch dbw_ford_joystick_demo joystick_demo.launch.xml sys:=true rviz:=true

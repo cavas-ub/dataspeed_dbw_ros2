@@ -1,8 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Software License Agreement (Proprietary and Confidential)
 #
-# Copyright (c) 2019, Dataspeed Inc.
+# Copyright (c) 2019-2021, Dataspeed Inc.
 # All rights reserved.
 #
 # NOTICE:  All information contained herein is, and remains the property of
@@ -12,102 +12,116 @@
 # Dissemination of this information or reproduction of this material is strictly
 # forbidden unless prior written permission is obtained from Dataspeed Inc.
 
-import rospy
-
+import time
+import rclpy
+import rclpy.qos
+import rclpy.duration
+from rclpy.node import Node
 from dbw_fca_msgs.msg import Misc2Report, MiscCmd
 from std_msgs.msg import Bool, Empty
+from enum import Enum
 
-class MiscHvacCmdTest:
+class InitState(Enum):
+  STARTUP = 0
+  WAIT_FOR_ENABLE = 1
+  SETUP_TIMER = 2
+  COMPLETE = 3
+  FAILURE = 99
 
-    def __init__(self):
-        rospy.init_node('vent')
+class MiscHvacCmdTest(Node):
+  def __init__(self):
+    super().__init__('vent')
 
-        self.initializing = True
+    self.init_state = InitState.STARTUP
+    self.init_timeout = 0
 
-        self.i = 0
-        self.start = 0
-        self.end = 100000
+    # resolution is 20ms
+    self.duration = 0.01 #seconds
+    self.timeout = 100000
 
-        # resolution is 20ms
-        self.duration = rospy.Duration(0.01)
+    self.dbw_enabled = False
+    self.msg_misc2_report = Misc2Report()
 
-        self.dbw_enabled = False
-        self.msg_misc2_report = Misc2Report()
+    self.get_logger().info('Sending vent command every ' + str(self.duration) + ' seconds for ' + str(self.timeout) + ' seconds.' )
 
-        rospy.loginfo('Sending vent command every ' + str(self.duration.to_sec()) + ' seconds from ' + str(self.start) + ' to ' + str(self.end) )
- 
-        # Publishers
-        global enable_pub, vent_pub, misc_pub
-        enable_pub   = rospy.Publisher('/vehicle/enable',       Empty,       queue_size=1)
-        misc_pub     = rospy.Publisher('/vehicle/misc_cmd',     MiscCmd,     queue_size=1)
+    # Publishers
+    global enable_pub, vent_pub, misc_pub
+    self.enable_pub = self.create_publisher(Empty, '/vehicle/enable', 1)
+    self.misc_pub = self.create_publisher(MiscCmd, '/vehicle/misc_cmd', 1)
 
-        # Subscribers
-        # DBW should be enabled
-        rospy.Subscriber('/vehicle/dbw_enabled',      Bool,           self.recv_dbw_enabled)
-        rospy.Subscriber('/vehicle/misc_2_report',    Misc2Report,    self.recv_misc2_report)
+    # Subscribers
+    # DBW should be enabled
+    latch_like_qos = rclpy.qos.QoSProfile(depth=1,durability=rclpy.qos.DurabilityPolicy.RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL)
+    self.create_subscription(Bool, '/vehicle/dbw_enabled', self.recv_dbw_enabled, latch_like_qos)
+    self.create_subscription(Misc2Report, '/vehicle/misc_2_report', self.recv_misc2_report, 10)
 
-        # To publish /vehicle/enable message to enable dbw system
-        rospy.Timer(rospy.Duration(0.5), self.initialize, oneshot=True)
+    # To publish /vehicle/enable message to enable dbw system
+    self.timer = self.create_timer(0.1, self.initialize)
 
+  def initialize(self):
+    if self.init_state == InitState.STARTUP:
+      self.init_state = InitState.WAIT_FOR_ENABLE
+      self.get_logger().info('Initialize: Start to enable DBW.')
+      # For test
+      # self.dbw_enabled = True
+    
+    if self.init_state == InitState.WAIT_FOR_ENABLE:
+      if self.dbw_enabled:
+        self.init_state = InitState.SETUP_TIMER
+      elif self.init_timeout > 10e9: # 10 seconds
+        self.init_state = InitState.FAILURE
+      else:
+        self.init_timeout += self.timer.timer_period_ns
+        self.enable_pub.publish(Empty())
+        return
+    
+    if self.init_state == InitState.SETUP_TIMER:
+      self.timer.cancel()
+      self.get_logger().info('Initialize: DBW is enabled. Starting timer_process')
+      self.init_state = InitState.COMPLETE
+      self.end = self.get_clock().now() + rclpy.duration.Duration(seconds=self.timeout)
+      self.timer = self.create_timer(self.duration, self.timer_process)
 
-    def initialize(self, event):
-        rospy.loginfo('Initialize: Start to enable DBW.')
-        timeout = 10.0
-        wait_time = 0.0
-        
-        # For test
-        self.dbw_enabled = True
+    if self.init_state == InitState.FAILURE:
+      self.timer.cancel()
+      self.get_logger().error("Failed to start test. Enable DBW first.")
+      rclpy.try_shutdown()
+      return
 
-        while not self.dbw_enabled and wait_time < timeout:
-            enable_pub.publish()
-            rospy.sleep(0.01)
-            wait_time += 0.01        
+  def timer_process(self):
+    if self.get_clock().now() > self.end:
+      rclpy.try_shutdown()
+      return
+    if not self.dbw_enabled:
+      self.get_logger().error("No new messages on topic '/vehicle/enable'. Enable DBW first.")
+    else:
+      msg = MiscCmd()
+      msg.ft_drv_temp.value = 70
+      msg.ft_psg_temp.value = 67
+      msg.ft_fan_speed.value = 5
+      msg.vent_mode.value = msg.vent_mode.FLOOR
+      msg.sync.cmd = msg.sync.OFF
+      msg.heated_steering_wheel.cmd = msg.heated_steering_wheel.ON
+      msg.fl_heated_seat.value = msg.fl_heated_seat.HI
+      self.misc_pub.publish(msg)
 
-        while True:
-            if self.dbw_enabled == True:
-                rospy.loginfo('Initialize: DBW is enabled. Start timer_process')
-                self.initializing = False
-                rospy.Timer(rospy.Duration(0.02), self.timer_process) 
-                break
+  def recv_misc2_report(self, msg):
+    self.msg_misc2_report = msg
+    self.msg_misc2_report_ready = True
 
-        rospy.Timer(rospy.Duration(0.02), self.timer_process)              
+  def recv_dbw_enabled(self, msg):
+    self.get_logger().info('DBW is enabled')
+    self.dbw_enabled = msg.data      
 
-    def timer_process(self, event):
+  def shutdown_handler(self):
+    self.get_logger().info('shutdown_handler')
 
-        if self.initializing:
-            rospy.signal_shutdown('')
-            return
-
-        if not self.dbw_enabled:
-            rospy.logerr("No new messages on topic '/vehicle/enable'. Enable DBW first.")
-        else:
-            self.i += 1
-            msg = MiscCmd()
-            msg.ft_drv_temp.value = 70
-            msg.ft_psg_temp.value = 67
-            msg.ft_fan_speed.value = 5
-            msg.vent_mode.value = msg.vent_mode.FLOOR
-            msg.sync.cmd = msg.sync.cmd.OFF
-            msg.hsw.cmd = msg.hsw.cmd.ON
-            msg.fl_heated_seat.cmd = msg.fl_heated_seat.cmd.HI
-            misc_pub.publish(msg)
-            rospy.loginfo('hvac commands were sent.')
-
-    def recv_misc2_report(self, msg):
-        self.msg_misc2_report = msg
-        self.msg_misc2_report_ready = True
-
-    def recv_dbw_enabled(self, msg):
-        rospy.loginfo('DBW is enabled')
-        self.dbw_enabled = msg.data            
-
-    def shutdown_handler(self):
-        rospy.loginfo('shutdown_handler')
+def main(args=None):
+  rclpy.init(args=args)
+  node = MiscHvacCmdTest()
+  rclpy.spin(node)
+  node.destroy_node()
+  rclpy.try_shutdown()
 
 if __name__ == '__main__':
-    try:
-        node = MiscHvacCmdTest()
-        rospy.on_shutdown(node.shutdown_handler)
-        rospy.spin()
-    except rospy.ROSInterruptException:
-        pass
+  main()

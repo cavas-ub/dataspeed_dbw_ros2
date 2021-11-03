@@ -1,3 +1,5 @@
+std_msgs/Header header
+
 # Brake pedal
 # Options defined below
 float32 pedal_cmd

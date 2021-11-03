@@ -1,4 +1,4 @@
-Header header
+std_msgs/Header header
 
 # Fuel level (%, 0 to 100)
 float32 fuel_level
@@ -8,4 +8,3 @@ float32 battery_12v
 
 # Odometer (km, 0.1km resolution)
 float32 odometer
-

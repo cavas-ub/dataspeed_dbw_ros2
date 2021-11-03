@@ -1,4 +1,4 @@
-Header header
+std_msgs/Header header
 
 # Turn Signal enumeration
 TurnSignal turn_signal

@@ -1,21 +1,21 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Software License Agreement (BSD License)
 #
-# Copyright (c) 2018, Dataspeed Inc.
+# Copyright (c) 2018-2021, Dataspeed Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
 # are permitted provided that the following conditions are met:
 # 
-#     * Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright notice,
-#       this list of conditions and the following disclaimer in the documentation
-#       and/or other materials provided with the distribution.
-#     * Neither the name of Dataspeed Inc. nor the names of its
-#       contributors may be used to endorse or promote products derived from this
-#       software without specific prior written permission.
+#   * Redistributions of source code must retain the above copyright notice,
+#     this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright notice,
+#     this list of conditions and the following disclaimer in the documentation
+#     and/or other materials provided with the distribution.
+#   * Neither the name of Dataspeed Inc. nor the names of its
+#     contributors may be used to endorse or promote products derived from this
+#     software without specific prior written permission.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -28,107 +28,112 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import rospy
+import rclpy
+from rclpy.node import Node
 from std_msgs.msg import Bool
 from dbw_fca_msgs.msg import BrakeCmd
 from dbw_fca_msgs.msg import GearReport, SteeringReport
 
-class BrakeThrash:
-    def __init__(self):
-        rospy.init_node('brake_thrash')
+class BrakeThrash(Node):
+  def __init__(self):
+    super().__init__('brake_thrash')
 
-        # Shutdown
-        self.shutdown = False
+    # Shutdown
+    self.shutdown = False
 
-        # Received messages
-        self.dbw_enabled = False
-        self.msg_steering_report_ready = False
-        self.msg_gear_report = GearReport()
-        self.msg_gear_report_ready = False
-        self.msg_steering_report = SteeringReport()
-        self.msg_steering_report_ready = False
+    # Received messages
+    self.dbw_enabled = False
+    self.msg_steering_report_ready = False
+    self.msg_gear_report = GearReport()
+    self.msg_gear_report_ready = False
+    self.msg_steering_report = SteeringReport()
+    self.msg_steering_report_ready = False
 
-        # Parameters
-        self.started = False
-        rospy.loginfo('Preparing to thrash the brake pedal command to try and induce a fault...')
-        rospy.loginfo('Validating that vehicle is parked...')
-        
-        # Publishers and subscribers
-        self.pub = rospy.Publisher('/vehicle/brake_cmd', BrakeCmd, queue_size=10)
-        rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.recv_enabled)
-        rospy.Subscriber('/vehicle/gear_report', GearReport, self.recv_gear)
-        rospy.Subscriber('/vehicle/steering_report', SteeringReport, self.recv_steering)
-        rospy.Timer(rospy.Duration(0.2), self.timer_process)
+    # Parameters
+    self.started = False
+    self.get_logger().info('Preparing to thrash the brake pedal command to try and induce a fault...')
+    self.get_logger().info('Validating that vehicle is parked...')
+    
+    # Publishers and subscribers
+    latch_like_qos = rclpy.qos.QoSProfile(depth=1,durability=rclpy.qos.DurabilityPolicy.RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL)
 
-    def timer_process(self, event):
-        # Check for safe conditions
-        if not self.msg_steering_report_ready:
-            self.shutdown = True
-            rospy.logerr('Speed check failed. No messages on topic \'/vehicle/steering_report\'')
-        elif not self.msg_steering_report.speed == 0.0:
-            self.shutdown = True
-            rospy.logerr('Speed check failed. Vehicle speed is not zero.')
-        if not self.msg_gear_report_ready:
-            self.shutdown = True
-            rospy.logerr('Gear check failed. No messages on topic \'/vehicle/gear_report\'')
-        elif not self.msg_gear_report.state.gear == self.msg_gear_report.state.PARK:
-            self.shutdown = True
-            rospy.logerr('Gear check failed. Vehicle not in park.')
+    self.pub = self.create_publisher(BrakeCmd, '/vehicle/brake_cmd', 10)
+    self.create_subscription(Bool, '/vehicle/dbw_enabled', self.recv_enabled, latch_like_qos)
+    self.create_subscription(GearReport, '/vehicle/gear_report', self.recv_gear, 10)
+    self.create_subscription(SteeringReport, '/vehicle/steering_report', self.recv_steering, 10)
+    self.create_timer(0.2, self.timer_process)
 
-        # Check if enabled
-        if self.shutdown:
-            rospy.signal_shutdown('')
-            return
+  def timer_process(self):
+    # Check for safe conditions
+    if not self.msg_steering_report_ready:
+      self.shutdown = True
+      self.get_logger().error('Speed check failed. No messages on topic \'/vehicle/steering_report\'')
+    elif not self.msg_steering_report.speed == 0.0:
+      self.shutdown = True
+      self.get_logger().error('Speed check failed. Vehicle speed is not zero.')
+    if not self.msg_gear_report_ready:
+      self.shutdown = True
+      self.get_logger().error('Gear check failed. No messages on topic \'/vehicle/gear_report\'')
+    elif not self.msg_gear_report.state.gear == self.msg_gear_report.state.PARK:
+      self.shutdown = True
+      self.get_logger().error('Gear check failed. Vehicle not in park.')
 
-        # Check if enabled
-        if not self.dbw_enabled:
-            rospy.logwarn('Drive-by-wire not enabled!')
+    # Check if enabled
+    if self.shutdown:
+      rclpy.try_shutdown()
+      return
 
-        # Start command timers
-        if not self.started:
-            self.started = True
-            rospy.Timer(rospy.Duration(0.01000), self.timer_cmd_0)
-            rospy.Timer(rospy.Duration(0.01001), self.timer_cmd_1)
-            rospy.loginfo('Started thrashing the brake pedal command to try and induce a fault.')
-        
-        # Prepare for next iteration
-        self.msg_gear_report_ready = False
-        self.msg_steering_report_ready = False
+    # Check if enabled
+    if not self.dbw_enabled:
+      self.get_logger().warn('Drive-by-wire not enabled!')
 
-    def timer_cmd_0(self, event):
-        if not self.shutdown:
-            msg = BrakeCmd()
-            msg.enable = True
-            msg.pedal_cmd_type = BrakeCmd.CMD_PEDAL
-            msg.pedal_cmd = 0.0
-            self.pub.publish(msg)
+    # Start command timers
+    if not self.started:
+      self.started = True
+      self.create_timer(0.01000, self.timer_cmd_0)
+      self.create_timer(0.01001, self.timer_cmd_1)
+      self.get_logger().info('Started thrashing the brake pedal command to try and induce a fault.')
+    
+    # Prepare for next iteration
+    self.msg_gear_report_ready = False
+    self.msg_steering_report_ready = False
 
-    def timer_cmd_1(self, event):
-        if not self.shutdown:
-            msg = BrakeCmd()
-            msg.enable = True
-            msg.pedal_cmd_type = BrakeCmd.CMD_PEDAL
-            msg.pedal_cmd = 1.0
-            self.pub.publish(msg)
+  def timer_cmd_0(self, event):
+    if not self.shutdown:
+      msg = BrakeCmd()
+      msg.enable = True
+      msg.pedal_cmd_type = BrakeCmd.CMD_PEDAL
+      msg.pedal_cmd = 0.0
+      self.pub.publish(msg)
 
-    def recv_enabled(self, msg):
-        self.dbw_enabled = msg.data
+  def timer_cmd_1(self, event):
+    if not self.shutdown:
+      msg = BrakeCmd()
+      msg.enable = True
+      msg.pedal_cmd_type = BrakeCmd.CMD_PEDAL
+      msg.pedal_cmd = 1.0
+      self.pub.publish(msg)
 
-    def recv_gear(self, msg):
-        self.msg_gear_report = msg
-        self.msg_gear_report_ready = True
+  def recv_enabled(self, msg):
+    self.dbw_enabled = msg.data
 
-    def recv_steering(self, msg):
-        self.msg_steering_report = msg
-        self.msg_steering_report_ready = True
+  def recv_gear(self, msg):
+    self.msg_gear_report = msg
+    self.msg_gear_report_ready = True
 
-    def shutdown_handler(self):
-        pass
+  def recv_steering(self, msg):
+    self.msg_steering_report = msg
+    self.msg_steering_report_ready = True
+
+  def shutdown_handler(self):
+    pass
+
+def main(args=None):
+  rclpy.init(args=args)
+  node = BrakeThrash()
+  rclpy.spin(node)
+  node.destroy_node()
+  rclpy.try_shutdown()
 
 if __name__ == '__main__':
-    try:
-        node = BrakeThrash()
-        rospy.on_shutdown(node.shutdown_handler)
-        rospy.spin()
-    except rospy.ROSInterruptException:
-        pass
+  main()

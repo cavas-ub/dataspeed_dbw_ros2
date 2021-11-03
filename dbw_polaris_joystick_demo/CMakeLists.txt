@@ -1,34 +1,54 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.5)
 project(dbw_polaris_joystick_demo)
 
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  std_msgs
-  sensor_msgs
-  dbw_polaris_msgs
+# Default to C++17
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 17)
+endif()
+
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+find_package(ament_cmake_ros REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
+find_package(dataspeed_dbw_common REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(dbw_polaris_msgs REQUIRED)
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  message(STATUS "Enabling coverage testing")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
+endif()
+
+add_library(${PROJECT_NAME} SHARED
+  "src/JoystickDemo.cpp"
 )
 
-catkin_package()
-
-include_directories(
-  ${catkin_INCLUDE_DIRS}
+ament_target_dependencies(${PROJECT_NAME}
+  "rclcpp_components"
+  "rclcpp"
+  "dataspeed_dbw_common"
+  "std_msgs"
+  "sensor_msgs"
+  "dbw_polaris_msgs"
 )
 
-add_executable(${PROJECT_NAME}_joystick_demo src/joystick_demo.cpp src/JoystickDemo.cpp)
-add_dependencies(${PROJECT_NAME}_joystick_demo ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}_joystick_demo
-  ${catkin_LIBRARIES}
-)
-set_target_properties(${PROJECT_NAME}_joystick_demo PROPERTIES OUTPUT_NAME joystick_demo PREFIX "")
-
-install(TARGETS ${PROJECT_NAME}_joystick_demo
-        RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+install(TARGETS ${PROJECT_NAME}
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
 )
 
 install(DIRECTORY launch
-        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  DESTINATION share/${PROJECT_NAME}
 )
 
-if (CATKIN_ENABLE_TESTING)
-  add_subdirectory(tests)
-endif()
+rclcpp_components_register_node(${PROJECT_NAME}
+  PLUGIN "${PROJECT_NAME}::JoystickDemo"
+  EXECUTABLE joy_demo
+)
+
+ament_package()

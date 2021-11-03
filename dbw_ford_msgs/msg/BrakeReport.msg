@@ -1,4 +1,4 @@
-Header header
+std_msgs/Header header
 
 # Brake pedal
 # Unitless, range 0.15 to 0.50

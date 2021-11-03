@@ -1,4 +1,4 @@
-Header header
+std_msgs/Header header
 
 # Current gear enumeration
 Gear state

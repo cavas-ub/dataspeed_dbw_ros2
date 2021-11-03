@@ -1,76 +1,93 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.5)
 project(dataspeed_ulc_can)
 
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  rospy
-  nodelet
-  std_msgs
-  geometry_msgs
-  can_msgs
-  dataspeed_ulc_msgs
-)
+# Default to C++17
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 17)
+endif()
+
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+find_package(ament_cmake_ros REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
+find_package(dataspeed_dbw_common REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(can_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(dataspeed_ulc_msgs REQUIRED)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   message(STATUS "Enabling coverage testing")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
 endif()
 
-if (NOT "${CMAKE_CXX_STANDARD_COMPUTED_DEFAULT}")
-  message(STATUS "Changing CXX_STANDARD from C++98 to C++11")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-elseif ("${CMAKE_CXX_STANDARD_COMPUTED_DEFAULT}" STREQUAL "98")
-  message(STATUS "Changing CXX_STANDARD from C++98 to C++11")
-  set(CMAKE_CXX_STANDARD 11)
+add_library(${PROJECT_NAME} SHARED
+  "src/UlcNode.cpp"
+)
+
+ament_target_dependencies(${PROJECT_NAME}
+  "rclcpp_components"
+  "rclcpp"
+  "dataspeed_dbw_common"
+  "std_msgs"
+  "can_msgs"
+  "geometry_msgs"
+  "dataspeed_ulc_msgs"
+)
+
+target_include_directories(
+  ${PROJECT_NAME} PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
+install(TARGETS ${PROJECT_NAME}
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+rclcpp_components_register_node(${PROJECT_NAME}
+  PLUGIN "${PROJECT_NAME}::UlcNode"
+  EXECUTABLE ulc_node
+)
+
+install(DIRECTORY include/
+  DESTINATION include
+)
+
+install(DIRECTORY scripts
+  DESTINATION lib/${PROJECT_NAME}
+  USE_SOURCE_PERMISSIONS
+)
+
+find_package(ament_cmake_python REQUIRED)
+
+ament_python_install_package(${PROJECT_NAME})
+
+if(BUILD_TESTING)
+  # find_package(roslib REQUIRED)
+  # find_package(rostest REQUIRED)
+  
+  # Test node
+  # add_rostest_gtest(${PROJECT_NAME}_test_node test_ulc_node.test test_ulc_node.cpp)
+  # add_dependencies(${PROJECT_NAME}_test_node ${catkin_EXPORTED_TARGETS})
+  # target_link_libraries(${PROJECT_NAME}_test_node ${catkin_LIBRARIES})
+  
+  # # Test nodelet
+  # add_rostest_gtest(${PROJECT_NAME}_test_nodelet test_ulc_nodelet.test test_ulc_node.cpp)
+  # add_dependencies(${PROJECT_NAME}_test_nodelet ${catkin_EXPORTED_TARGETS})
+  # target_link_libraries(${PROJECT_NAME}_test_nodelet ${catkin_LIBRARIES})
+  
+  # # Test config frequency parameter (for ROS distributions newer than Indigo)
+  # if($ENV{ROS_DISTRO} STRGREATER indigo)
+  #   add_rostest(param_cfg_freq.test ARGS config_freq:=2  param_value:=5)
+  #   add_rostest(param_cfg_freq.test ARGS config_freq:=20 param_value:=20)
+  #   add_rostest(param_cfg_freq.test ARGS config_freq:=99 param_value:=50)
+  # endif()
 endif()
 
-catkin_package(
-  INCLUDE_DIRS include
-)
-
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-)
-
-add_library(${PROJECT_NAME}
-  src/nodelet.cpp
-  src/UlcNode.cpp
-)
-add_dependencies(${PROJECT_NAME}
-  ${catkin_EXPORTED_TARGETS}
-)
-target_link_libraries(${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
-
-add_executable(ulc_node
-  src/node.cpp
-)
-target_link_libraries(ulc_node
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
-
-### Install Rules
-install(TARGETS ${PROJECT_NAME} ulc_node
-        RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-        LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-)
-install(FILES nodelets.xml
-        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-)
-install(DIRECTORY include/${PROJECT_NAME}/
-        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-)
-
-catkin_python_setup()
-catkin_install_python(PROGRAMS
-                        scripts/speed_sine_wave.py
-                        scripts/speed_square_wave.py
-                      DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
-
-### Tests
-if (CATKIN_ENABLE_TESTING)
-  add_subdirectory(tests)
-endif()
+ament_package()

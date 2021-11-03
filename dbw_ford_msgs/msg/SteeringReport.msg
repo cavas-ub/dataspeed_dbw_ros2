@@ -1,4 +1,4 @@
-Header header
+std_msgs/Header header
 
 # Steering Wheel
 float32 steering_wheel_angle      # rad

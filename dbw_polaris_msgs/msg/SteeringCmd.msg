@@ -1,3 +1,5 @@
+std_msgs/Header header
+
 # Steering Wheel
 float32 steering_wheel_angle_cmd        # rad, range -10.5 to 10.5
 float32 steering_wheel_angle_velocity   # rad/s, range 0 to 17.5, 0 = default
