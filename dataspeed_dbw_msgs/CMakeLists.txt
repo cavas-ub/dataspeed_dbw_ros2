@@ -13,10 +13,13 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 "msg/Gear.msg"
 "msg/GearReject.msg"
 "msg/GearReport.msg"
+"msg/MiscCmd.msg"
+"msg/MiscReport.msg"
 "msg/SteeringCmd.msg"
 "msg/SteeringReport.msg"
 "msg/ThrottleCmd.msg"
 "msg/ThrottleReport.msg"
+"msg/TurnSignal.msg"
 "msg/WatchdogCounter.msg"
 DEPENDENCIES
 "std_msgs"

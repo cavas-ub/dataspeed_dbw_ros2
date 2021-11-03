@@ -2,6 +2,8 @@
 #include <dataspeed_dbw_msgs/msg/brake_report.hpp>
 #include <dataspeed_dbw_msgs/msg/gear_cmd.hpp>
 #include <dataspeed_dbw_msgs/msg/gear_report.hpp>
+#include <dataspeed_dbw_msgs/msg/misc_cmd.hpp>
+#include <dataspeed_dbw_msgs/msg/misc_report.hpp>
 #include <dataspeed_dbw_msgs/msg/steering_cmd.hpp>
 #include <dataspeed_dbw_msgs/msg/steering_report.hpp>
 #include <dataspeed_dbw_msgs/msg/throttle_cmd.hpp>
@@ -11,10 +13,12 @@
 #include <dbw_ford_msgs/msg/brake_report.hpp>
 #include <dbw_ford_msgs/msg/gear_cmd.hpp>
 #include <dbw_ford_msgs/msg/gear_report.hpp>
+#include <dbw_ford_msgs/msg/misc1_report.hpp>
 #include <dbw_ford_msgs/msg/steering_cmd.hpp>
 #include <dbw_ford_msgs/msg/steering_report.hpp>
 #include <dbw_ford_msgs/msg/throttle_cmd.hpp>
 #include <dbw_ford_msgs/msg/throttle_report.hpp>
+#include <dbw_ford_msgs/msg/turn_signal_cmd.hpp>
 
 #include <rclcpp/rclcpp.hpp>
 
@@ -26,18 +30,20 @@ namespace common_ns = dataspeed_dbw_msgs::msg;
 namespace vehicle_ns = dbw_ford_msgs::msg;
 
 // Message Name, Message Topic
-#define MESSAGE_LIST_N(X0, X1, X2, X3, X4, X5, X6, X7) \
-  X0(BrakeCmd,       brake_cmd)                        \
-  X1(BrakeReport,    brake_report)                     \
-  X2(GearCmd,        gear_cmd)                         \
-  X3(GearReport,     gear_report)                      \
-  X4(SteeringCmd,    steering_cmd)                     \
-  X5(SteeringReport, steering_report)                  \
-  X6(ThrottleCmd,    throttle_cmd)                     \
-  X7(ThrottleReport, throttle_report)                  \
+#define MESSAGE_LIST(C, R) \
+/* DsMsg          ds_msg           VehicleMsg      vehicle_msg   */ \
+C(BrakeCmd,       brake_cmd,       BrakeCmd,       brake_cmd)       \
+R(BrakeReport,    brake_report,    BrakeReport,    brake_report)    \
+C(GearCmd,        gear_cmd,        GearCmd,        gear_cmd)        \
+R(GearReport,     gear_report,     GearReport,     gear_report)     \
+C(MiscCmd,        misc_cmd,        TurnSignalCmd,  turn_signal_cmd) \
+R(MiscReport,     misc_report,     Misc1Report,    misc_1_report)   \
+C(SteeringCmd,    steering_cmd,    SteeringCmd,    steering_cmd)    \
+R(SteeringReport, steering_report, SteeringReport, steering_report) \
+C(ThrottleCmd,    throttle_cmd,    ThrottleCmd,    throttle_cmd)    \
+R(ThrottleReport, throttle_report, ThrottleReport, throttle_report) \
 
-#define EMPTY(xn, xt)
-#define MESSAGE_LIST(C,R)   MESSAGE_LIST_N(C, R, C, R, C, R, C, R)
+#define EMPTY(dname, dtopic, vname, vtopic)
 #define MESSAGE_LIST_CMD(X) MESSAGE_LIST(X, EMPTY)
 #define MESSAGE_LIST_RPT(X) MESSAGE_LIST(EMPTY, X)
 
@@ -56,14 +62,14 @@ public:
     auto node_ds = create_sub_node("ds");
 
     // Publish and subscribe
-    #define CMD_PUB_SUB(xname, xtopic) \
-    pub_vh_##xtopic = node_vh->create_publisher  <vehicle_ns::xname>(#xtopic, QOS); \
-    sub_ds_##xtopic = node_ds->create_subscription<common_ns::xname>(#xtopic, QOS, \
-        [this](common_ns::xname::ConstSharedPtr msg) { onMessage(this->pub_vh_##xtopic, msg); });
-    #define RPT_PUB_SUB(xname, xtopic) \
-    pub_ds_##xtopic = node_ds->create_publisher    <common_ns::xname>(#xtopic, QOS); \
-    sub_vh_##xtopic = node_vh->create_subscription<vehicle_ns::xname>(#xtopic, QOS, \
-        [this](vehicle_ns::xname::ConstSharedPtr msg) { onMessage(this->pub_ds_##xtopic, msg); });
+    #define CMD_PUB_SUB(dname, dtopic, vname, vtopic) \
+    pub_vh_##vtopic = node_vh->create_publisher  <vehicle_ns::vname>(#vtopic, QOS); \
+    sub_ds_##dtopic = node_ds->create_subscription<common_ns::dname>(#dtopic, QOS, \
+        [this](common_ns::dname::ConstSharedPtr msg) { onMessage(this->pub_vh_##vtopic, msg); });
+    #define RPT_PUB_SUB(dname, dtopic, vname, vtopic) \
+    pub_ds_##dtopic = node_ds->create_publisher    <common_ns::dname>(#dtopic, QOS); \
+    sub_vh_##vtopic = node_vh->create_subscription<vehicle_ns::vname>(#vtopic, QOS, \
+        [this](vehicle_ns::vname::ConstSharedPtr msg) { onMessage(this->pub_ds_##dtopic, msg); });
     MESSAGE_LIST(CMD_PUB_SUB, RPT_PUB_SUB)
     #undef CMD_PUB_SUB
     #undef RPT_PUB_SUB
@@ -82,12 +88,12 @@ private:
   }
 
   // Publishers and subscribers
-  #define DECLARE_PUB_SUB_CMD(xname, xtopic) \
-  rclcpp::Subscription<common_ns::xname>::SharedPtr sub_ds_##xtopic; \
-  rclcpp::Publisher  <vehicle_ns::xname>::SharedPtr pub_vh_##xtopic;
-  #define DECLARE_PUB_SUB_RPT(xname, xtopic) \
-  rclcpp::Subscription<vehicle_ns::xname>::SharedPtr sub_vh_##xtopic; \
-  rclcpp::Publisher    <common_ns::xname>::SharedPtr pub_ds_##xtopic;
+  #define DECLARE_PUB_SUB_CMD(dname, dtopic, vname, vtopic) \
+  rclcpp::Subscription<common_ns::dname>::SharedPtr sub_ds_##dtopic; \
+  rclcpp::Publisher  <vehicle_ns::vname>::SharedPtr pub_vh_##vtopic;
+  #define DECLARE_PUB_SUB_RPT(dname, dtopic, vname, vtopic) \
+  rclcpp::Subscription<vehicle_ns::vname>::SharedPtr sub_vh_##vtopic; \
+  rclcpp::Publisher    <common_ns::dname>::SharedPtr pub_ds_##dtopic;
   MESSAGE_LIST(DECLARE_PUB_SUB_CMD, DECLARE_PUB_SUB_RPT)
   #undef DECLARE_PUB_SUB_CMD
   #undef DECLARE_PUB_SUB_RPT
