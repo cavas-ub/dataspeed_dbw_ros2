@@ -87,7 +87,7 @@ JoystickDemo::JoystickDemo(const rclcpp::NodeOptions &options) : rclcpp::Node("j
     pub_gear_ = create_publisher<dbw_ford_msgs::msg::GearCmd>("gear_cmd", 1);
   }
   if (signal_) {
-    pub_turn_signal_ = create_publisher<dbw_ford_msgs::msg::TurnSignalCmd>("turn_signal_cmd", 1);
+    pub_misc_ = create_publisher<dbw_ford_msgs::msg::MiscCmd>("misc_cmd", 1);
   }
   if (enable_) {
     pub_enable_ = create_publisher<std_msgs::msg::Empty>("enable", 1);
@@ -175,9 +175,9 @@ void JoystickDemo::cmdCallback() {
 
   // Turn signal
   if (signal_) {
-    dbw_ford_msgs::msg::TurnSignalCmd msg;
+    dbw_ford_msgs::msg::MiscCmd msg;
     msg.cmd.value = data_.turn_signal_cmd;
-    pub_turn_signal_->publish(msg);
+    pub_misc_->publish(msg);
   }
 }
 

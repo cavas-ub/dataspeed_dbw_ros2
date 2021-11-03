@@ -221,8 +221,8 @@ DbwNode::DbwNode(const rclcpp::NodeOptions &options)
     sub_gear_ = create_subscription<dbw_ford_msgs::msg::GearCmd>("gear_cmd", 1, bind);
   }
   {
-    auto bind = std::bind(&DbwNode::recvTurnSignalCmd, this, _1);
-    sub_turn_signal_ = create_subscription<dbw_ford_msgs::msg::TurnSignalCmd>("turn_signal_cmd", 1, bind);
+    auto bind = std::bind(&DbwNode::recvMiscCmd, this, _1);
+    sub_misc_ = create_subscription<dbw_ford_msgs::msg::MiscCmd>("misc_cmd", 1, bind);
   }
 
   // Setup Timer
@@ -1236,12 +1236,12 @@ void DbwNode::recvGearCmd(const dbw_ford_msgs::msg::GearCmd::ConstSharedPtr msg)
   pub_can_->publish(out);
 }
 
-void DbwNode::recvTurnSignalCmd(const dbw_ford_msgs::msg::TurnSignalCmd::ConstSharedPtr msg) {
+void DbwNode::recvMiscCmd(const dbw_ford_msgs::msg::MiscCmd::ConstSharedPtr msg) {
   can_msgs::msg::Frame out;
   out.id = ID_MISC_CMD;
   out.is_extended = false;
-  out.dlc = sizeof(MsgTurnSignalCmd);
-  MsgTurnSignalCmd *ptr = reinterpret_cast<MsgTurnSignalCmd *>(out.data.data());
+  out.dlc = sizeof(MsgMiscCmd);
+  MsgMiscCmd *ptr = reinterpret_cast<MsgMiscCmd *>(out.data.data());
   memset(ptr, 0x00, sizeof(*ptr));
   if (enabled()) {
     ptr->TRNCMD = msg->cmd.value;

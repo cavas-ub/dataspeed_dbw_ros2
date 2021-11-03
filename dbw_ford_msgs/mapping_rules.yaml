@@ -120,7 +120,7 @@
   ros1_package_name: 'dbw_mkz_msgs'
   ros1_message_name: 'TurnSignalCmd'
   ros2_package_name: 'dbw_ford_msgs'
-  ros2_message_name: 'TurnSignalCmd'
+  ros2_message_name: 'MiscCmd'
 -
   ros1_package_name: 'dbw_mkz_msgs'
   ros1_message_name: 'TurnSignal'

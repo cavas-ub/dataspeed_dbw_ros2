@@ -45,6 +45,7 @@
 #include <dbw_ford_msgs/msg/fuel_level_report.hpp>
 #include <dbw_ford_msgs/msg/gear_cmd.hpp>
 #include <dbw_ford_msgs/msg/gear_report.hpp>
+#include <dbw_ford_msgs/msg/misc_cmd.hpp>
 #include <dbw_ford_msgs/msg/misc1_report.hpp>
 #include <dbw_ford_msgs/msg/steering_cmd.hpp>
 #include <dbw_ford_msgs/msg/steering_report.hpp>
@@ -53,7 +54,6 @@
 #include <dbw_ford_msgs/msg/throttle_info_report.hpp>
 #include <dbw_ford_msgs/msg/throttle_report.hpp>
 #include <dbw_ford_msgs/msg/tire_pressure_report.hpp>
-#include <dbw_ford_msgs/msg/turn_signal_cmd.hpp>
 #include <dbw_ford_msgs/msg/wheel_position_report.hpp>
 #include <dbw_ford_msgs/msg/wheel_speed_report.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
@@ -88,7 +88,7 @@ private:
   void recvThrottleCmd(const dbw_ford_msgs::msg::ThrottleCmd::ConstSharedPtr msg);
   void recvSteeringCmd(const dbw_ford_msgs::msg::SteeringCmd::ConstSharedPtr msg);
   void recvGearCmd(const dbw_ford_msgs::msg::GearCmd::ConstSharedPtr msg);
-  void recvTurnSignalCmd(const dbw_ford_msgs::msg::TurnSignalCmd::ConstSharedPtr msg);
+  void recvMiscCmd(const dbw_ford_msgs::msg::MiscCmd::ConstSharedPtr msg);
 
   rclcpp::TimerBase::SharedPtr timer_;
   bool prev_enable_;
@@ -203,7 +203,7 @@ private:
   rclcpp::Subscription<dbw_ford_msgs::msg::ThrottleCmd>::SharedPtr sub_throttle_;
   rclcpp::Subscription<dbw_ford_msgs::msg::SteeringCmd>::SharedPtr sub_steering_;
   rclcpp::Subscription<dbw_ford_msgs::msg::GearCmd>::SharedPtr sub_gear_;
-  rclcpp::Subscription<dbw_ford_msgs::msg::TurnSignalCmd>::SharedPtr sub_turn_signal_;
+  rclcpp::Subscription<dbw_ford_msgs::msg::MiscCmd>::SharedPtr sub_misc_;
 
   // Published topics
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr pub_can_;

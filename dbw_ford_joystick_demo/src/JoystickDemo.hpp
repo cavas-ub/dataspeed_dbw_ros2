@@ -41,7 +41,7 @@
 #include <dbw_ford_msgs/msg/gear_cmd.hpp>
 #include <dbw_ford_msgs/msg/steering_cmd.hpp>
 #include <dbw_ford_msgs/msg/throttle_cmd.hpp>
-#include <dbw_ford_msgs/msg/turn_signal_cmd.hpp>
+#include <dbw_ford_msgs/msg/misc_cmd.hpp>
 
 namespace dbw_ford_joystick_demo {
 
@@ -71,7 +71,7 @@ private:
   rclcpp::Publisher<dbw_ford_msgs::msg::ThrottleCmd>::SharedPtr pub_throttle_;
   rclcpp::Publisher<dbw_ford_msgs::msg::SteeringCmd>::SharedPtr pub_steering_;
   rclcpp::Publisher<dbw_ford_msgs::msg::GearCmd>::SharedPtr pub_gear_;
-  rclcpp::Publisher<dbw_ford_msgs::msg::TurnSignalCmd>::SharedPtr pub_turn_signal_;
+  rclcpp::Publisher<dbw_ford_msgs::msg::MiscCmd>::SharedPtr pub_misc_;
   rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr pub_enable_;
   rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr pub_disable_;
 

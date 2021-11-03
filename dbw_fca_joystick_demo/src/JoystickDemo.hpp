@@ -73,7 +73,7 @@ private:
   rclcpp::Publisher<dbw_fca_msgs::msg::ThrottleCmd>::SharedPtr pub_throttle_;
   rclcpp::Publisher<dbw_fca_msgs::msg::SteeringCmd>::SharedPtr pub_steering_;
   rclcpp::Publisher<dbw_fca_msgs::msg::GearCmd>::SharedPtr pub_gear_;
-  rclcpp::Publisher<dbw_fca_msgs::msg::MiscCmd>::SharedPtr pub_turn_signal_;
+  rclcpp::Publisher<dbw_fca_msgs::msg::MiscCmd>::SharedPtr pub_misc_;
   rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr pub_enable_;
   rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr pub_disable_;
 

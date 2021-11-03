@@ -200,10 +200,6 @@ DbwNode::DbwNode(const rclcpp::NodeOptions &options)
     sub_gear_ = create_subscription<dbw_fca_msgs::msg::GearCmd>("gear_cmd", 1, bind);
   }
   {
-    auto bind = std::bind(&DbwNode::recvTurnSignalCmd, this, _1);
-    sub_turn_signal_ = create_subscription<dbw_fca_msgs::msg::MiscCmd>("turn_signal_cmd", 1, bind);
-  }
-  {
     auto bind = std::bind(&DbwNode::recvMiscCmd, this, _1);
     sub_misc_ = create_subscription<dbw_fca_msgs::msg::MiscCmd>("misc_cmd", 1, bind);
   }
@@ -1076,10 +1072,6 @@ void DbwNode::recvGearCmd(const dbw_fca_msgs::msg::GearCmd::ConstSharedPtr msg) 
     ptr->CLEAR = 1;
   }
   pub_can_->publish(out);
-}
-
-void DbwNode::recvTurnSignalCmd(const dbw_fca_msgs::msg::MiscCmd::ConstSharedPtr msg) {
-  recvMiscCmd(msg);
 }
 
 void DbwNode::recvMiscCmd(const dbw_fca_msgs::msg::MiscCmd::ConstSharedPtr msg) {

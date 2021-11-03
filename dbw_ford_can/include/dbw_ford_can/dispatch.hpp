@@ -168,8 +168,8 @@ static_assert(2 == sizeof(MsgGearReport));
 typedef struct {
   uint8_t TRNCMD :2;
   uint8_t :6;
-} MsgTurnSignalCmd;
-static_assert(1 == sizeof(MsgTurnSignalCmd));
+} MsgMiscCmd;
+static_assert(1 == sizeof(MsgMiscCmd));
 
 typedef struct {
   uint8_t turn_signal :2;

@@ -85,7 +85,6 @@ private:
   void recvThrottleCmd(const dbw_fca_msgs::msg::ThrottleCmd::ConstSharedPtr msg);
   void recvSteeringCmd(const dbw_fca_msgs::msg::SteeringCmd::ConstSharedPtr msg);
   void recvGearCmd(const dbw_fca_msgs::msg::GearCmd::ConstSharedPtr msg);
-  void recvTurnSignalCmd(const dbw_fca_msgs::msg::MiscCmd::ConstSharedPtr msg); // Backwards compatiblity
   void recvMiscCmd(const dbw_fca_msgs::msg::MiscCmd::ConstSharedPtr msg);
 
   rclcpp::TimerBase::SharedPtr timer_;
@@ -200,7 +199,6 @@ private:
   rclcpp::Subscription<dbw_fca_msgs::msg::ThrottleCmd>::SharedPtr sub_throttle_;
   rclcpp::Subscription<dbw_fca_msgs::msg::SteeringCmd>::SharedPtr sub_steering_;
   rclcpp::Subscription<dbw_fca_msgs::msg::GearCmd>::SharedPtr sub_gear_;
-  rclcpp::Subscription<dbw_fca_msgs::msg::MiscCmd>::SharedPtr sub_turn_signal_;
   rclcpp::Subscription<dbw_fca_msgs::msg::MiscCmd>::SharedPtr sub_misc_;
 
   // Published topics

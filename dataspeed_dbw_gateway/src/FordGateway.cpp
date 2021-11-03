@@ -13,12 +13,12 @@
 #include <dbw_ford_msgs/msg/brake_report.hpp>
 #include <dbw_ford_msgs/msg/gear_cmd.hpp>
 #include <dbw_ford_msgs/msg/gear_report.hpp>
+#include <dbw_ford_msgs/msg/misc_cmd.hpp>
 #include <dbw_ford_msgs/msg/misc1_report.hpp>
 #include <dbw_ford_msgs/msg/steering_cmd.hpp>
 #include <dbw_ford_msgs/msg/steering_report.hpp>
 #include <dbw_ford_msgs/msg/throttle_cmd.hpp>
 #include <dbw_ford_msgs/msg/throttle_report.hpp>
-#include <dbw_ford_msgs/msg/turn_signal_cmd.hpp>
 
 #include <rclcpp/rclcpp.hpp>
 
@@ -36,7 +36,7 @@ C(BrakeCmd,       brake_cmd,       BrakeCmd,       brake_cmd)       \
 R(BrakeReport,    brake_report,    BrakeReport,    brake_report)    \
 C(GearCmd,        gear_cmd,        GearCmd,        gear_cmd)        \
 R(GearReport,     gear_report,     GearReport,     gear_report)     \
-C(MiscCmd,        misc_cmd,        TurnSignalCmd,  turn_signal_cmd) \
+C(MiscCmd,        misc_cmd,        MiscCmd,        misc_cmd)        \
 R(MiscReport,     misc_report,     Misc1Report,    misc_1_report)   \
 C(SteeringCmd,    steering_cmd,    SteeringCmd,    steering_cmd)    \
 R(SteeringReport, steering_report, SteeringReport, steering_report) \
