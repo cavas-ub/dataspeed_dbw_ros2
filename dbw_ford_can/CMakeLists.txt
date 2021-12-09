@@ -59,6 +59,7 @@ rclcpp_components_register_node(${PROJECT_NAME}
   EXECUTABLE dbw_node
 )
 
+ament_export_include_directories(include)
 install(DIRECTORY include/
   DESTINATION include
 )
