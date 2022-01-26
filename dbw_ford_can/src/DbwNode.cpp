@@ -57,6 +57,12 @@ using namespace dataspeed_dbw_common;
 
 // Latest firmware versions
 PlatformMap FIRMWARE_LATEST({
+  {PlatformVersion(P_FORD_C1,  M_TPEC,  ModuleVersion(1,2,0))},
+  {PlatformVersion(P_FORD_C1,  M_STEER, ModuleVersion(1,2,0))},
+  {PlatformVersion(P_FORD_C1,  M_SHIFT, ModuleVersion(1,2,0))},
+  {PlatformVersion(P_FORD_C1,  M_ABS,   ModuleVersion(1,2,0))},
+  {PlatformVersion(P_FORD_C1,  M_BOO,   ModuleVersion(1,2,0))},
+  {PlatformVersion(P_FORD_C1,  M_EPS,   ModuleVersion(1,2,0))},
   {PlatformVersion(P_FORD_CD4, M_BPEC,  ModuleVersion(2,5,0))},
   {PlatformVersion(P_FORD_CD4, M_TPEC,  ModuleVersion(2,5,0))},
   {PlatformVersion(P_FORD_CD4, M_STEER, ModuleVersion(2,5,0))},
@@ -64,6 +70,9 @@ PlatformMap FIRMWARE_LATEST({
   {PlatformVersion(P_FORD_CD5, M_BOO,   ModuleVersion(1,1,0))},
   {PlatformVersion(P_FORD_CD5, M_TPEC,  ModuleVersion(1,1,0))},
   {PlatformVersion(P_FORD_CD5, M_STEER, ModuleVersion(1,1,0))},
+  {PlatformVersion(P_FORD_GE1, M_TPEC,  ModuleVersion(0,0,1))},
+  {PlatformVersion(P_FORD_GE1, M_STEER, ModuleVersion(0,0,1))},
+  {PlatformVersion(P_FORD_GE1, M_SHIFT, ModuleVersion(0,0,1))},
   {PlatformVersion(P_FORD_P5,  M_TPEC,  ModuleVersion(1,4,0))},
   {PlatformVersion(P_FORD_P5,  M_STEER, ModuleVersion(1,4,0))},
   {PlatformVersion(P_FORD_P5,  M_SHIFT, ModuleVersion(1,4,0))},
@@ -76,12 +85,6 @@ PlatformMap FIRMWARE_LATEST({
   {PlatformVersion(P_FORD_U6,  M_SHIFT, ModuleVersion(1,0,0))},
   {PlatformVersion(P_FORD_U6,  M_ABS,   ModuleVersion(1,0,0))},
   {PlatformVersion(P_FORD_U6,  M_BOO,   ModuleVersion(1,0,0))},
-  {PlatformVersion(P_FORD_C1,  M_TPEC,  ModuleVersion(1,2,0))},
-  {PlatformVersion(P_FORD_C1,  M_STEER, ModuleVersion(1,2,0))},
-  {PlatformVersion(P_FORD_C1,  M_SHIFT, ModuleVersion(1,2,0))},
-  {PlatformVersion(P_FORD_C1,  M_ABS,   ModuleVersion(1,2,0))},
-  {PlatformVersion(P_FORD_C1,  M_BOO,   ModuleVersion(1,2,0))},
-  {PlatformVersion(P_FORD_C1,  M_EPS,   ModuleVersion(1,2,0))},
 });
 
 using std::placeholders::_1;
