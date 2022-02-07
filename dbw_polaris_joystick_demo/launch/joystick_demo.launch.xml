@@ -7,7 +7,7 @@
   <arg name="socketcan" default="false" />
   <arg name="socketcan_dev" default="can0" />
   <group if="$(var sys)">
-    <include file="$(find-pkg-share dbw_polaris_can)/launch/dbw.launch" >
+    <include file="$(find-pkg-share dbw_polaris_can)/launch/dbw.launch.xml" >
       <arg name="dataspeed_can" value="$(var dataspeed_can)" />
       <arg name="socketcan" value="$(var socketcan)" />
       <arg name="socketcan_dev" value="$(var socketcan_dev)" />
@@ -17,7 +17,7 @@
   <!-- Rviz -->
   <arg name="rviz" default="false"/>
   <group if="$(var rviz)">
-    <include file="$(find-pkg-share dbw_polaris_description)/launch/rviz.launch" />
+    <include file="$(find-pkg-share dbw_polaris_description)/launch/rviz2.launch.xml" />
   </group>
 
   <!-- Joystick demo -->
@@ -33,7 +33,7 @@
   <arg name="count" default="false"/>
   <arg name="strq" default="false"/>
   <arg name="svel" default="0.0"/>
-  <node ns="vehicle" pkg="dbw_polaris_joystick_demo" type="joystick_demo" name="joystick_demo" output="screen" >
+  <node namespace="vehicle" pkg="dbw_polaris_joystick_demo" exec="joy_demo" output="screen" >
     <param name="brake" value="$(var brake)" /> <!-- Send brake commands -->
     <param name="throttle" value="$(var throttle)" /> <!-- Send throttle commands -->
     <param name="steer" value="$(var steer)" /> <!-- Send steering commands -->
@@ -50,7 +50,7 @@
 
   <!-- Joystick driver -->
   <arg name="dev" default="/dev/input/js0"/>
-  <node pkg="joy" type="joy_node" name="joy_node" output="screen" >
+  <node pkg="joy" exec="joy_node" name="joy_node" output="screen" >
     <param name="dev" value="$(var dev)" />
     <param name="deadzone" value="0.0" />
     <param name="autorepeat_rate" value="50.0" />

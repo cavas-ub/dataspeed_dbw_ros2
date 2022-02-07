@@ -34,7 +34,6 @@
 
 #include "DbwNode.hpp"
 
-#include <dataspeed_dbw_common/SimpleParams.hpp>
 #include <dbw_polaris_can/dispatch.hpp>
 #include <dbw_polaris_can/pedal_lut.hpp>
 #include <unordered_set>
@@ -95,29 +94,20 @@ DbwNode::DbwNode(const rclcpp::NodeOptions &options)
   enabled_steering_ = false;
   gear_warned_ = false;
 
-  // Parameter helper class
-  SimpleParams params(this);
-
   // Frame ID
-  frame_id_ = "base_footprint";
-  params.get("frame_id", frame_id_);
+  frame_id_ = declare_parameter<std::string>("frame_id", "base_footprint");
 
   // Warn on received commands
-  warn_cmds_ = true;
-  params.get("warn_cmds", warn_cmds_);
+  warn_cmds_ = declare_parameter<bool>("warn_cmds", true);
 
   // Pedal LUTs (local/embedded)
-  pedal_luts_ = false;
-  params.get("pedal_luts", pedal_luts_);
+  pedal_luts_ = declare_parameter<bool>("pedal_luts", false);
 
-  // Ackermann steering parameters @TODO
-  acker_wheelbase_ = 3.08864; // 121.6 inches
-  acker_track_ = 1.73228; // 68.2 inches
-  steering_ratio_ = 16.2;
+  // Ackermann steering parameters
   wheel_radius_ = 0.365;
-  params.get("ackermann_wheelbase", acker_wheelbase_);
-  params.get("ackermann_track", acker_track_);
-  params.get("steering_ratio", steering_ratio_);
+  acker_wheelbase_ = declare_parameter<double>("ackermann_wheelbase", 1.75); // 68.8 inches
+  acker_track_ = declare_parameter<double>("ackermann_track", 1.435); // 56.5 inches
+  steering_ratio_ = declare_parameter<double>("steering_ratio", 17.0);
 
   // Initialize joint states
   joint_state_.position.resize(JOINT_COUNT);

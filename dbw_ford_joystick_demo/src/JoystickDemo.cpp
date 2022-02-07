@@ -34,33 +34,28 @@
 
 #include "JoystickDemo.hpp"
 
-#include <dataspeed_dbw_common/SimpleParams.hpp>
-
 namespace dbw_ford_joystick_demo {
 
 JoystickDemo::JoystickDemo(const rclcpp::NodeOptions &options) : rclcpp::Node("joy_demo", options) {
   joy_.axes.resize(AXIS_COUNT_X, 0);
   joy_.buttons.resize(BTN_COUNT_X, 0);
 
-  dataspeed_dbw_common::SimpleParams params(this);
-
-  params.get("brake", brake_, true);
-  params.get("throttle", throttle_, true);
-  params.get("steer", steer_, true);
-  params.get("shift", shift_, true);
-  params.get("signal", signal_, true);
-  params.get("brake_gain", brake_gain_, 1.0f);
-  params.get("throttle_gain", throttle_gain_, 1.0f);
-
-  brake_gain_    = std::min(std::max(brake_gain_,    (float)0), (float)1);
-  throttle_gain_ = std::min(std::max(throttle_gain_, (float)0), (float)1);
+  brake_ = declare_parameter<bool>("brake", true);
+  throttle_ = declare_parameter<bool>("throttle", true);
+  steer_ = declare_parameter<bool>("steer", true);
+  shift_ = declare_parameter<bool>("shift", true);
+  signal_ = declare_parameter<bool>("signal", true);
+  brake_gain_ = declare_parameter<float>("brake_gain", 1.0f);
+  throttle_gain_ = declare_parameter<float>("throttle_gain", 1.0f);
+  brake_gain_    = std::clamp<float>(brake_gain_,    0, 1);
+  throttle_gain_ = std::clamp<float>(throttle_gain_, 0, 1);
 
   last_steering_filt_output_ = 0.0;
-  params.get("ignore", ignore_, false);
-  params.get("enable", enable_, true);
-  params.get("count", count_, false);
-  params.get("strq", strq_, false);
-  params.get("svel", svel_, 0.0f);
+  ignore_ = declare_parameter<bool>("ignore", false);
+  enable_ = declare_parameter<bool>("enable", true);
+  count_ = declare_parameter<bool>("count", false);
+  strq_ = declare_parameter<bool>("strq", false);
+  svel_ = declare_parameter<float>("svel", 0.0f);
 
   using std::placeholders::_1;
   sub_joy_ = create_subscription<sensor_msgs::msg::Joy>("/joy", 1, std::bind(&JoystickDemo::recvJoy, this, _1));

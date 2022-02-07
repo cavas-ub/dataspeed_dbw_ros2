@@ -17,7 +17,7 @@
   <!-- Rviz -->
   <arg name="rviz" default="false"/>
   <group if="$(var rviz)">
-    <include file="$(find-pkg-share dbw_ford_description)/launch/rviz.launch.xml" />
+    <include file="$(find-pkg-share dbw_ford_description)/launch/rviz2.launch.xml" />
   </group>
 
   <!-- Joystick demo -->

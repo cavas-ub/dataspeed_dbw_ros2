@@ -8,6 +8,6 @@
   </include>
   <node pkg="robot_state_publisher" exec="robot_state_publisher" name="robot_state_publisher">
     <param name="robot_description" value="$(var xacro_robot_description)" />
-    <param name="publish_frequency" type="double" value="30.0" />
+    <param name="publish_frequency" value="30.0" />
   </node>
 </launch>

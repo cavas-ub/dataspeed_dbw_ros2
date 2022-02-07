@@ -34,7 +34,6 @@
 
 #include "DbwNode.hpp"
 
-#include <dataspeed_dbw_common/SimpleParams.hpp>
 #include <dbw_fca_can/dispatch.hpp>
 #include <dbw_fca_can/pedal_lut.hpp>
 #include <unordered_set>
@@ -99,33 +98,23 @@ DbwNode::DbwNode(const rclcpp::NodeOptions &options)
   enabled_steering_ = false;
   gear_warned_ = false;
 
-  // Parameter helper class
-  SimpleParams params(this);
-
   // Frame ID
-  frame_id_ = "base_footprint";
-  params.get("frame_id", frame_id_);
+  frame_id_ = declare_parameter<std::string>("frame_id", "base_footprint");
 
   // Warn on received commands
-  warn_cmds_ = true;
-  params.get("warn_cmds", warn_cmds_);
+  warn_cmds_ = declare_parameter<bool>("warn_cmds", true);
 
   // Buttons (enable/disable)
-  buttons_ = true;
-  params.get("buttons", buttons_);
+  buttons_ = declare_parameter<bool>("buttons", true);
 
   // Pedal LUTs (local/embedded)
-  pedal_luts_ = false;
-  params.get("pedal_luts", pedal_luts_);
+  pedal_luts_ = declare_parameter<bool>("pedal_luts", false);
 
   // Ackermann steering parameters
-  acker_wheelbase_ = 3.08864; // 121.6 inches
-  acker_track_ = 1.73228; // 68.2 inches
-  steering_ratio_ = 16.2;
   wheel_radius_ = 0.365;
-  params.get("ackermann_wheelbase", acker_wheelbase_);
-  params.get("ackermann_track", acker_track_);
-  params.get("steering_ratio", steering_ratio_);
+  acker_wheelbase_ = declare_parameter<double>("ackermann_wheelbase", 3.08864); // 121.6 inches
+  acker_track_ = declare_parameter<double>("ackermann_track", 1.73228); // 68.2 inches
+  steering_ratio_ = declare_parameter<double>("steering_ratio", 16.2);
 
   // Initialize joint states
   joint_state_.position.resize(JOINT_COUNT);
@@ -165,7 +154,7 @@ DbwNode::DbwNode(const rclcpp::NodeOptions &options)
   publishDbwEnabled();
 
   // Publish joint states if enabled
-  params.get("joint_states", enable_joint_states_, true);
+  enable_joint_states_ = declare_parameter<bool>("joint_states", true);
   if (enable_joint_states_) {
     pub_joint_states_ = create_publisher<sensor_msgs::msg::JointState>("joint_states", 10);
   }

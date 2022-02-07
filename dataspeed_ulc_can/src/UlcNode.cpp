@@ -35,7 +35,6 @@
 #include "UlcNode.hpp"
 
 #include <chrono>
-#include <dataspeed_dbw_common/SimpleParams.hpp>
 #include <dataspeed_ulc_can/dispatch.hpp>
 
 namespace dataspeed_ulc_can {
@@ -90,10 +89,9 @@ UlcNode::UlcNode(const rclcpp::NodeOptions &options) : rclcpp::Node("ulc_node", 
   cmd_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
 
   // Setup timer for config message retransmission
-  dataspeed_dbw_common::SimpleParams params(this);
-
-  double freq = 5.0;
-  params.get("config_frequency", freq, 5.0, 50.0);
+  double freq = declare_parameter<double>("config_frequency", 5.0);
+  freq = std::clamp(freq, 5.0, 50.0);
+  set_parameter(rclcpp::Parameter("config_frequency", freq));
 
   auto duration = std::chrono::microseconds(static_cast<uint32_t>(1000000.0 / freq));
   config_timer_ = create_wall_timer(duration, std::bind(&UlcNode::configTimerCb, this));
