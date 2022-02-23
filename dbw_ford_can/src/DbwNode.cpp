@@ -1233,6 +1233,7 @@ void DbwNode::recvMiscCmd(const dbw_ford_msgs::msg::MiscCmd::ConstSharedPtr msg)
   memset(ptr, 0x00, sizeof(*ptr));
   if (enabled()) {
     ptr->TRNCMD = msg->cmd.value;
+    ptr->PBRKCMD = msg->pbrk.cmd;
   }
   pub_can_->publish(out);
 }
