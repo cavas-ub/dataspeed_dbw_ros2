@@ -2,8 +2,8 @@
 Changelog for package dbw_ford_can
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.0.1 (2022-02-23)
+------------------
 * Add Ford GE1 platform (Ford Mustang Mach-E)
 * Add electric parking brake control
 * Change parameters to work in Foxy and Galactic

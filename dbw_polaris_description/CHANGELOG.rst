@@ -2,8 +2,8 @@
 Changelog for package dbw_polaris_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.0.1 (2022-02-23)
+------------------
 * Change parameters to work in Foxy and Galactic
 * Contributors: Micho Radovnikovich
 

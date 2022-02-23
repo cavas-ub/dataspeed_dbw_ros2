@@ -2,8 +2,8 @@
 Changelog for package dbw_fca_can
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.0.1 (2022-02-23)
+------------------
 * Change parameters to work in Foxy and Galactic
 * Export include directories from DBW CAN interface packages
 * Contributors: Micho Radovnikovich
