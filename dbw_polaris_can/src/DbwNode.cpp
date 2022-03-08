@@ -56,12 +56,12 @@ using namespace dataspeed_dbw_common;
 
 // Latest firmware versions
 PlatformMap FIRMWARE_LATEST({
-  {PlatformVersion(P_POLARIS_GEM,  M_TPEC,  ModuleVersion(1,1,0))},
-  {PlatformVersion(P_POLARIS_GEM,  M_STEER, ModuleVersion(1,1,0))},
-  {PlatformVersion(P_POLARIS_GEM,  M_BOO,   ModuleVersion(1,1,0))},
-  {PlatformVersion(P_POLARIS_RZR,  M_TPEC,  ModuleVersion(0,3,0))},
-  {PlatformVersion(P_POLARIS_RZR,  M_STEER, ModuleVersion(0,3,0))},
-  {PlatformVersion(P_POLARIS_RZR,  M_BOO,   ModuleVersion(0,3,0))},
+  {PlatformVersion(P_POLARIS_GEM,  M_TPEC,  ModuleVersion(1,1,1))},
+  {PlatformVersion(P_POLARIS_GEM,  M_STEER, ModuleVersion(1,1,1))},
+  {PlatformVersion(P_POLARIS_GEM,  M_BOO,   ModuleVersion(1,1,1))},
+  {PlatformVersion(P_POLARIS_RZR,  M_TPEC,  ModuleVersion(0,3,1))},
+  {PlatformVersion(P_POLARIS_RZR,  M_STEER, ModuleVersion(0,3,1))},
+  {PlatformVersion(P_POLARIS_RZR,  M_BOO,   ModuleVersion(0,3,1))},
 });
 
 using std::placeholders::_1;
