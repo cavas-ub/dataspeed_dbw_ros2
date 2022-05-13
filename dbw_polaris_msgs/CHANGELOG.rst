@@ -2,6 +2,9 @@
 Changelog for package dbw_polaris_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 2.0.1 (2022-02-23)
 ------------------
 

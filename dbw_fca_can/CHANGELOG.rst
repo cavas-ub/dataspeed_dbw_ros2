@@ -2,6 +2,12 @@
 Changelog for package dbw_fca_can
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Periodically publish DBW enabled status in addition to latched and on change
+* Bump firmware versions
+* Contributors: Kevin Hallenbeck
+
 2.0.1 (2022-02-23)
 ------------------
 * Change parameters to work in Foxy and Galactic

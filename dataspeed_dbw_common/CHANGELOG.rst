@@ -2,6 +2,9 @@
 Changelog for package dataspeed_dbw_common
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 2.0.1 (2022-02-23)
 ------------------
 * Add Ford GE1 platform (Ford Mustang Mach-E)

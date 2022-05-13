@@ -2,6 +2,9 @@
 Changelog for package dataspeed_ulc_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 2.0.1 (2022-02-23)
 ------------------
 
