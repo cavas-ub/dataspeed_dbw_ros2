@@ -2,8 +2,8 @@
 Changelog for package dbw_ford_can
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.0.2 (2022-05-13)
+------------------
 * Periodically publish DBW enabled status in addition to latched and on change
 * Bump firmware versions
 * Contributors: Kevin Hallenbeck
