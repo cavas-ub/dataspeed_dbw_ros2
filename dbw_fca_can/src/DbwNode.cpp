@@ -1096,20 +1096,26 @@ void DbwNode::recvMiscCmd(const dbw_fca_msgs::msg::MiscCmd::ConstSharedPtr msg) 
   pub_can_->publish(out);
 }
 
-bool DbwNode::publishDbwEnabled() {
-  bool change = false;
+bool DbwNode::publishDbwEnabled(bool force)
+{
   bool en = enabled();
-  if (prev_enable_ != en) {
+  bool change = prev_enable_ != en;
+  if (change || force) {
     std_msgs::msg::Bool msg;
     msg.data = en;
     pub_sys_enable_->publish(msg);
-    change = true;
   }
   prev_enable_ = en;
   return change;
 }
 
 void DbwNode::timerCallback() {
+  // Publish status periodically, in addition to latched and on change
+  if (publishDbwEnabled(true)) {
+    RCLCPP_WARN(get_logger(), "DBW system enable status changed unexpectedly");
+  }
+
+  // Clear override statuses if necessary
   if (clear()) {
     can_msgs::msg::Frame out;
     out.is_extended = false;

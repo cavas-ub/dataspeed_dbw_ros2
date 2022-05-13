@@ -120,7 +120,7 @@ private:
   bool enabled() const {
     return enable_ && !fault() && !override();
   }
-  bool publishDbwEnabled();
+  bool publishDbwEnabled(bool force = false);
   void enableSystem();
   void disableSystem();
   void buttonCancel();
