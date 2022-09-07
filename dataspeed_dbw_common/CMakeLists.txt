@@ -29,6 +29,10 @@ install(DIRECTORY scripts
   USE_SOURCE_PERMISSIONS
 )
 
+install(DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+)
+
 ament_export_include_directories(include)
 
 if(BUILD_TESTING)
