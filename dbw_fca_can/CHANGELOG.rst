@@ -2,6 +2,11 @@
 Changelog for package dbw_fca_can
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fix socketcan options
+* Contributors: Kevin Hallenbeck
+
 2.0.2 (2022-05-13)
 ------------------
 * Periodically publish DBW enabled status in addition to latched and on change

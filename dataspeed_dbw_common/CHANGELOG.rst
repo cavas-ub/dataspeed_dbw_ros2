@@ -2,6 +2,12 @@
 Changelog for package dataspeed_dbw_common
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Copy and modify socketcan launch files
+* Add topic remapping to socketcan launch files
+* Contributors: Kevin Hallenbeck
+
 2.0.2 (2022-05-13)
 ------------------
 

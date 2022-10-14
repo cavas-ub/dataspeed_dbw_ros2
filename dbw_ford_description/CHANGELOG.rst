@@ -2,6 +2,9 @@
 Changelog for package dbw_ford_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 2.0.2 (2022-05-13)
 ------------------
 

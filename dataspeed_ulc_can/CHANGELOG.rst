@@ -2,6 +2,9 @@
 Changelog for package dataspeed_ulc_can
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 2.0.2 (2022-05-13)
 ------------------
 
