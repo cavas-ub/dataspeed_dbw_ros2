@@ -2,8 +2,8 @@
 Changelog for package dbw_ford_can
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.0.3 (2022-10-14)
+------------------
 * Fix socketcan options
 * Contributors: Kevin Hallenbeck
 
