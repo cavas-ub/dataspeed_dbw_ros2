@@ -346,10 +346,10 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg) {
           } else {
             out.steering_wheel_torque = (float)ptr->TORQUE * (float)0.0625;
           }
-          if (ptr->SPEED == 0xFFFF) {
+          if ((uint16_t)ptr->VEH_VEL == 0x8000) {
             out.speed = NAN;
           } else {
-            out.speed = (float)ptr->SPEED * (float)(0.01 / 3.6) * (float)speedSign();
+            out.speed = (float)ptr->VEH_VEL * (float)(0.01 / 3.6);
           }
           out.enabled = ptr->ENABLED ? true : false;
           out.override = ptr->OVERRIDE ? true : false;
