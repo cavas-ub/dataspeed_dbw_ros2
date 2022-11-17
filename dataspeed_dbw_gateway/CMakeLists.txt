@@ -91,6 +91,7 @@ install(TARGETS
 )
 
 if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
   ament_add_gtest(${PROJECT_NAME}_test_generic_message "tests/test_generic_message.cpp")
   target_include_directories(${PROJECT_NAME}_test_generic_message PUBLIC "src")
   # these are required to work with message files from the same package

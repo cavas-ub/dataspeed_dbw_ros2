@@ -36,6 +36,7 @@ install(DIRECTORY launch
 ament_export_include_directories(include)
 
 if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
   ament_add_gtest(${PROJECT_NAME}_test_module_version "tests/test_module_version.cpp")
   target_include_directories(${PROJECT_NAME}_test_module_version PUBLIC "include")
 
