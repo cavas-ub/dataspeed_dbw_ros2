@@ -2,8 +2,8 @@
 Changelog for package dataspeed_dbw_gateway
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.1.0 (2022-11-30)
+------------------
 * Add missing ament_cmake_gtest dependency
 * Add missing dependencies for dataspeed_dbw_gateway
 * Sync ament_cmake and ament_cmake_ros in each CMakeLists.txt/package.xml

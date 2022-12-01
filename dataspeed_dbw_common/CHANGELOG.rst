@@ -2,8 +2,8 @@
 Changelog for package dataspeed_dbw_common
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.1.0 (2022-11-30)
+------------------
 * Remove unused dependency
 * Add missing ament_cmake_gtest dependency
 * Sync ament_cmake and ament_cmake_ros in each CMakeLists.txt/package.xml

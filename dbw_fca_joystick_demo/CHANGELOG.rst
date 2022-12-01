@@ -2,8 +2,8 @@
 Changelog for package dbw_fca_joystick_demo
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.1.0 (2022-11-30)
+------------------
 * Sync ament_cmake and ament_cmake_ros in each CMakeLists.txt/package.xml
 * Contributors: Kevin Hallenbeck
 

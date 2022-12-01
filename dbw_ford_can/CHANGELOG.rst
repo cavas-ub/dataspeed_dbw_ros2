@@ -2,8 +2,8 @@
 Changelog for package dbw_ford_can
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.1.0 (2022-11-30)
+------------------
 * Bump firmware versions
 * Add missing ament_cmake_gtest dependency
 * Sync ament_cmake and ament_cmake_ros in each CMakeLists.txt/package.xml
