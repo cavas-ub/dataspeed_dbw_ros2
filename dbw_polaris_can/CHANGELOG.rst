@@ -2,6 +2,14 @@
 Changelog for package dbw_polaris_can
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Bump firmware versions
+* Add missing ament_cmake_gtest dependency
+* Sync ament_cmake and ament_cmake_ros in each CMakeLists.txt/package.xml
+* Change unsigned vehicle speed to signed vehicle velocity
+* Contributors: Kevin Hallenbeck, Micho Radovnikovich
+
 2.0.3 (2022-10-14)
 ------------------
 * Fix socketcan options

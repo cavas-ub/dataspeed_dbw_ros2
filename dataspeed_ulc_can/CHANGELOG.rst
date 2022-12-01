@@ -2,6 +2,12 @@
 Changelog for package dataspeed_ulc_can
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Reconfigure CAN and ROS messages for new ULC capability
+* Sync ament_cmake and ament_cmake_ros in each CMakeLists.txt/package.xml
+* Contributors: Kevin Hallenbeck, Micho Radovnikovich
+
 2.0.3 (2022-10-14)
 ------------------
 

@@ -2,6 +2,11 @@
 Changelog for package dbw_ford_joystick_demo
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Sync ament_cmake and ament_cmake_ros in each CMakeLists.txt/package.xml
+* Contributors: Kevin Hallenbeck
+
 2.0.3 (2022-10-14)
 ------------------
 

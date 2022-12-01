@@ -2,6 +2,11 @@
 Changelog for package dataspeed_ulc_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Reconfigure CAN and ROS messages for new ULC capability
+* Contributors: Micho Radovnikovich
+
 2.0.3 (2022-10-14)
 ------------------
 
