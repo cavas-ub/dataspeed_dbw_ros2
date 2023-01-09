@@ -323,7 +323,7 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg) {
         if (msg->dlc >= sizeof(MsgSteeringReport)) {
           const MsgSteeringReport *ptr = reinterpret_cast<const MsgSteeringReport *>(msg->data.data());
           faultSteering(ptr->FLTBUS1 || ptr->FLTBUS2);
-          faultSteeringCal(ptr->FLTCAL);
+          faultSteeringCal(ptr->FLTCAL && (uint16_t)ptr->ANGLE == 0x8000);
           faultWatchdog(ptr->FLTWDC);
           dbw_ford_msgs::msg::SteeringReport out;
           out.header.stamp = msg->header.stamp;
@@ -376,10 +376,12 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg) {
                                  ptr->FLTBUS1 ? "true, " : "false,",
                                  ptr->FLTBUS2 ? "true, " : "false,",
                                  ptr->FLTPWR ? "true" : "false");
-          } else if (ptr->FLTCAL) {
-            RCLCPP_WARN_THROTTLE(
-                get_logger(), *get_clock(), 5e3,
+          } else if (ptr->FLTCAL && (uint16_t)ptr->ANGLE == 0x8000) {
+            RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3,
                 "Steering calibration fault. Drive at least 25 mph for at least 10 seconds in a straight line.");
+          } else if (ptr->FLTCAL) {
+            RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3,
+                "Steering configuration fault. Contact support@dataspeedinc.com if not resolved in a few minutes.");
           }
         }
         break;
