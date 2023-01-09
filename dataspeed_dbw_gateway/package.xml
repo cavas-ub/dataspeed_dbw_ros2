@@ -18,6 +18,7 @@
   <build_depend>rosidl_default_generators</build_depend>
   <exec_depend>rosidl_default_runtime</exec_depend>
 
+  <depend>ros_environment</depend>
   <depend>rclcpp</depend>
   <depend>rclcpp_components</depend>
   <depend>dbw_fca_msgs</depend>
