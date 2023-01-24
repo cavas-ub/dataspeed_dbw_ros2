@@ -2,6 +2,9 @@
 Changelog for package dataspeed_dbw_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 2.1.0 (2022-11-30)
 ------------------
 
