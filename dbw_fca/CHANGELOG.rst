@@ -2,8 +2,8 @@
 Changelog for package dbw_fca
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.1.1 (2023-01-24)
+------------------
 * Update install scripts for ROS2
 * Copy install scripts from ROS1
 * Contributors: Kevin Hallenbeck
