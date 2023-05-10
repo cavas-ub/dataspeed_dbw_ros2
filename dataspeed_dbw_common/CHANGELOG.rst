@@ -2,6 +2,9 @@
 Changelog for package dataspeed_dbw_common
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 2.1.1 (2023-01-24)
 ------------------
 * Add P702 platform (2021+ F-150)

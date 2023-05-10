@@ -2,6 +2,11 @@
 Changelog for package dbw_fca_can
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Bump firmware versions
+* Contributors: Kevin Hallenbeck
+
 2.1.1 (2023-01-24)
 ------------------
 * Update install scripts for ROS2

@@ -2,6 +2,9 @@
 Changelog for package dataspeed_dbw_gateway
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 2.1.1 (2023-01-24)
 ------------------
 * Fix build in Humble

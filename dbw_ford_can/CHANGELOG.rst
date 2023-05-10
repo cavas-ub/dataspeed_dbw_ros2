@@ -2,6 +2,11 @@
 Changelog for package dbw_ford_can
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Bump firmware versions
+* Contributors: Kevin Hallenbeck
+
 2.1.1 (2023-01-24)
 ------------------
 * Bump firmware versions
