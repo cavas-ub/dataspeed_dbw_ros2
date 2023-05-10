@@ -56,14 +56,14 @@ using namespace dataspeed_dbw_common;
 
 // Latest firmware versions
 PlatformMap FIRMWARE_LATEST({
-  {PlatformVersion(P_FCA_RU,  M_BPEC,  ModuleVersion(1,6,0))},
-  {PlatformVersion(P_FCA_RU,  M_TPEC,  ModuleVersion(1,6,0))},
-  {PlatformVersion(P_FCA_RU,  M_STEER, ModuleVersion(1,6,0))},
-  {PlatformVersion(P_FCA_RU,  M_SHIFT, ModuleVersion(1,6,0))},
-  {PlatformVersion(P_FCA_WK2, M_TPEC,  ModuleVersion(1,4,0))},
-  {PlatformVersion(P_FCA_WK2, M_STEER, ModuleVersion(1,4,0))},
-  {PlatformVersion(P_FCA_WK2, M_SHIFT, ModuleVersion(1,4,0))},
-  {PlatformVersion(P_FCA_WK2, M_ABS,   ModuleVersion(1,4,0))},
+  {PlatformVersion(P_FCA_RU,  M_BPEC,  ModuleVersion(1,6,1))},
+  {PlatformVersion(P_FCA_RU,  M_TPEC,  ModuleVersion(1,6,1))},
+  {PlatformVersion(P_FCA_RU,  M_STEER, ModuleVersion(1,6,1))},
+  {PlatformVersion(P_FCA_RU,  M_SHIFT, ModuleVersion(1,6,1))},
+  {PlatformVersion(P_FCA_WK2, M_TPEC,  ModuleVersion(1,4,1))},
+  {PlatformVersion(P_FCA_WK2, M_STEER, ModuleVersion(1,4,1))},
+  {PlatformVersion(P_FCA_WK2, M_SHIFT, ModuleVersion(1,4,1))},
+  {PlatformVersion(P_FCA_WK2, M_ABS,   ModuleVersion(1,4,1))},
 });
 
 using std::placeholders::_1;
