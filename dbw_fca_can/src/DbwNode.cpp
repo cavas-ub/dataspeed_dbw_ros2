@@ -362,6 +362,7 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg) {
           out.header.stamp = msg->header.stamp;
           out.state.gear = ptr->STATE;
           out.cmd.gear = ptr->CMD;
+          out.ready = ptr->READY ? true : false;
           out.override = ptr->OVERRIDE ? true : false;
           out.fault_bus = ptr->FLTBUS ? true : false;
           if (msg->dlc >= sizeof(MsgGearReport)) {
