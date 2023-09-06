@@ -364,7 +364,8 @@ static_assert(8 == sizeof(MsgReportBrakeInfo));
 typedef struct {
   uint16_t engine_rpm :16;
   uint16_t throttle_pc :10;
-  uint8_t :4;
+  uint8_t :2;
+  uint8_t one_pedal_drive :2;
   uint8_t aped_qf :2;
   int8_t throttle_rate :8;
   uint8_t gear_num :5;

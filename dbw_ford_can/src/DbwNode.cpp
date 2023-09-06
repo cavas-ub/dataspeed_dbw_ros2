@@ -693,6 +693,7 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg) {
             out.throttle_rate = (float)ptr->throttle_rate * 4e-4f;
           }
           out.throttle_pedal_qf.value = ptr->aped_qf;
+          out.one_pedal.value = ptr->one_pedal_drive;
           if (ptr->engine_rpm == 0xFFFF) {
             out.engine_rpm = NAN;
           } else {
