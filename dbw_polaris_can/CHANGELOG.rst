@@ -2,8 +2,8 @@
 Changelog for package dbw_polaris_can
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.1.3 (2023-09-11)
+------------------
 * Bump firmware versions
 * Contributors: Kevin Hallenbeck
 
