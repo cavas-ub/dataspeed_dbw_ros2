@@ -2,6 +2,12 @@
 Changelog for package dbw_ford_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Add one-pedal-drive mode status
+* Add ready flag to GearReport message
+* Contributors: Kevin Hallenbeck
+
 2.1.2 (2023-05-10)
 ------------------
 

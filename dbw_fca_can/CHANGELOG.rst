@@ -2,6 +2,12 @@
 Changelog for package dbw_fca_can
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Bump firmware versions
+* Add ready flag to GearReport message
+* Contributors: Kevin Hallenbeck
+
 2.1.2 (2023-05-10)
 ------------------
 * Bump firmware versions

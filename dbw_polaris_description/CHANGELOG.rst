@@ -2,6 +2,9 @@
 Changelog for package dbw_polaris_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 2.1.2 (2023-05-10)
 ------------------
 
