@@ -69,19 +69,19 @@ JoystickDemo::JoystickDemo(const rclcpp::NodeOptions &options) : rclcpp::Node("j
   data_.joy_brake_valid = false;
 
   if (brake_) {
-    pub_brake_ = create_publisher<ds_dbw_msgs::msg::BrakeCmd>("brake_cmd", 1);
+    pub_brake_ = create_publisher<ds_dbw_msgs::msg::BrakeCmd>("brake/cmd", 1);
   }
   if (throttle_) {
-    pub_throttle_ = create_publisher<ds_dbw_msgs::msg::ThrottleCmd>("throttle_cmd", 1);
+    pub_throttle_ = create_publisher<ds_dbw_msgs::msg::ThrottleCmd>("throttle/cmd", 1);
   }
   if (steer_) {
-    pub_steering_ = create_publisher<ds_dbw_msgs::msg::SteeringCmd>("steering_cmd", 1);
+    pub_steering_ = create_publisher<ds_dbw_msgs::msg::SteeringCmd>("steering/cmd", 1);
   }
   if (shift_) {
-    pub_gear_ = create_publisher<ds_dbw_msgs::msg::GearCmd>("gear_cmd", 1);
+    pub_gear_ = create_publisher<ds_dbw_msgs::msg::GearCmd>("gear/cmd", 1);
   }
   if (misc_) {
-    pub_misc_ = create_publisher<ds_dbw_msgs::msg::MiscCmd>("misc_cmd", 1);
+    pub_misc_ = create_publisher<ds_dbw_msgs::msg::MiscCmd>("misc/cmd", 1);
   }
   if (enable_) {
     pub_enable_ = create_publisher<std_msgs::msg::Empty>("enable", 1);

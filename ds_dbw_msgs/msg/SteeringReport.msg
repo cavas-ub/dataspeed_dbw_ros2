@@ -24,6 +24,9 @@ bool bad_rc # Repeated rolling counter on most recent command
 
 ##### Start of slower secondary reports #####
 
+# Degradation of any kind
+bool degraded
+
 # Rate limits
 float32 limit_rate
 float32 limit_value
@@ -31,39 +34,5 @@ float32 limit_value
 # Command source
 CmdSrc cmd_src
 
-# Degraded
-bool degraded
-bool degraded_cmd_type
-bool degraded_comms
-bool degraded_comms_dbw
-bool degraded_comms_dbw_gateway
-bool degraded_comms_dbw_brake
-bool degraded_comms_dbw_thrtl
-bool degraded_comms_dbw_gear
-bool degraded_comms_vehicle
-bool degraded_comms_actuator
-bool degraded_internal
-bool degraded_control_performance
-bool degraded_param_mismatch
-bool degraded_vehicle
-bool degraded_actuator
-bool degraded_vehicle_speed
-bool degraded_calibration
-
-# Faults
-bool fault_power
-bool fault_comms
-bool fault_comms_dbw
-bool fault_comms_dbw_gateway
-bool fault_comms_dbw_brake
-bool fault_comms_dbw_thrtl
-bool fault_comms_dbw_gear
-bool fault_comms_vehicle
-bool fault_comms_actuator
-bool fault_internal
-bool fault_vehicle
-bool fault_vehicle_speed
-bool fault_actuator
-bool fault_actuator_torque_sensor
-bool fault_actuator_config
-bool fault_calibration
+# Diagnostics omitted to ruduce message size and clutter
+# See SteeringDiagnostics.msg

@@ -39,12 +39,16 @@
 #include <can_msgs/msg/frame.hpp>
 #include <dataspeed_can_msg_filters/ApproximateTime.hpp>
 #include <ds_dbw_msgs/msg/steering_cmd.hpp>
+#include <ds_dbw_msgs/msg/steering_diagnostics.hpp>
 #include <ds_dbw_msgs/msg/steering_report.hpp>
 #include <ds_dbw_msgs/msg/brake_cmd.hpp>
+#include <ds_dbw_msgs/msg/brake_diagnostics.hpp>
 #include <ds_dbw_msgs/msg/brake_report.hpp>
 #include <ds_dbw_msgs/msg/throttle_cmd.hpp>
+#include <ds_dbw_msgs/msg/throttle_diagnostics.hpp>
 #include <ds_dbw_msgs/msg/throttle_report.hpp>
 #include <ds_dbw_msgs/msg/gear_cmd.hpp>
+#include <ds_dbw_msgs/msg/gear_diagnostics.hpp>
 #include <ds_dbw_msgs/msg/gear_report.hpp>
 #include <ds_dbw_msgs/msg/vehicle_velocity.hpp>
 #include <ds_dbw_msgs/msg/throttle_info.hpp>
@@ -89,7 +93,7 @@ private:
   void recvGearCmd(const ds_dbw_msgs::msg::GearCmd::ConstSharedPtr msg);
   void recvMiscCmd(const ds_dbw_msgs::msg::MiscCmd::ConstSharedPtr msg);
   void recvUlcCmd(const ds_dbw_msgs::msg::UlcCmd::ConstSharedPtr msg);
-  void recvCalibrateSteering(const std_msgs::msg::Empty::ConstSharedPtr msg);
+  void recvSteeringCalibrate(const std_msgs::msg::Empty::ConstSharedPtr msg);
 
   // CAN messages
   MsgSteerCmdUsr     msg_steer_cmd_;
@@ -319,10 +323,14 @@ private:
 
   // Published topics
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr pub_can_;
-  rclcpp::Publisher<ds_dbw_msgs::msg::SteeringReport>::SharedPtr pub_steer_;
-  rclcpp::Publisher<ds_dbw_msgs::msg::BrakeReport>::SharedPtr pub_brake_;
-  rclcpp::Publisher<ds_dbw_msgs::msg::ThrottleReport>::SharedPtr pub_thrtl_;
-  rclcpp::Publisher<ds_dbw_msgs::msg::GearReport>::SharedPtr pub_gear_;
+  rclcpp::Publisher<ds_dbw_msgs::msg::SteeringReport>::SharedPtr pub_steer_rpt_;
+  rclcpp::Publisher<ds_dbw_msgs::msg::SteeringDiagnostics>::SharedPtr pub_steer_diag_;
+  rclcpp::Publisher<ds_dbw_msgs::msg::BrakeReport>::SharedPtr pub_brake_rpt_;
+  rclcpp::Publisher<ds_dbw_msgs::msg::BrakeDiagnostics>::SharedPtr pub_brake_diag_;
+  rclcpp::Publisher<ds_dbw_msgs::msg::ThrottleReport>::SharedPtr pub_thrtl_rpt_;
+  rclcpp::Publisher<ds_dbw_msgs::msg::ThrottleDiagnostics>::SharedPtr pub_thrtl_diag_;
+  rclcpp::Publisher<ds_dbw_msgs::msg::GearReport>::SharedPtr pub_gear_rpt_;
+  rclcpp::Publisher<ds_dbw_msgs::msg::GearDiagnostics>::SharedPtr pub_gear_diag_;
   rclcpp::Publisher<ds_dbw_msgs::msg::VehicleVelocity>::SharedPtr pub_veh_vel_;
   rclcpp::Publisher<ds_dbw_msgs::msg::ThrottleInfo>::SharedPtr pub_thrtl_info_;
   rclcpp::Publisher<ds_dbw_msgs::msg::BrakeInfo>::SharedPtr pub_brake_info_;

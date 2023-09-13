@@ -33,6 +33,9 @@ bool bad_rc # Repeated rolling counter on most recent command
 
 ##### Start of slower secondary report #####
 
+# Degradation of any kind
+bool degraded
+
 # Rate limits
 float32 limit_rate
 float32 limit_value
@@ -46,50 +49,5 @@ bool external_button
 # Command source
 CmdSrc cmd_src
 
-# Degraded
-bool degraded
-bool degraded_cmd_type
-bool degraded_comms
-bool degraded_comms_dbw
-bool degraded_comms_dbw_gateway
-bool degraded_comms_dbw_steer
-bool degraded_comms_dbw_thrtl
-bool degraded_comms_dbw_gear
-bool degraded_comms_vehicle
-bool degraded_comms_actuator
-bool degraded_comms_actuator_1
-bool degraded_comms_actuator_2
-bool degraded_internal
-bool degraded_control_performance
-bool degraded_param_mismatch
-bool degraded_btsi_stuck_low
-bool degraded_btsi_stuck_high
-bool degraded_vehicle
-bool degraded_vehicle_speed
-bool degraded_actuator
-bool degraded_actuator_1
-bool degraded_actuator_2
-bool degraded_actuator_aeb_deny
-bool degraded_calibration
-
-# Faults
-bool fault_power
-bool fault_comms
-bool fault_internal
-bool fault_vehicle
-bool fault_actuator
-bool fault_comms_dbw
-bool fault_comms_dbw_gateway
-bool fault_comms_dbw_steer
-bool fault_comms_dbw_thrtl
-bool fault_comms_dbw_gear
-bool fault_comms_vehicle
-bool fault_comms_actuator
-bool fault_comms_actuator_1
-bool fault_comms_actuator_2
-bool fault_vehicle_speed
-bool fault_actuator_acc_deny
-bool fault_actuator_pedal_torque
-bool fault_actuator_1
-bool fault_actuator_2
-bool fault_calibration
+# Diagnostics omitted to ruduce message size and clutter
+# See BrakeDiagnostics.msg

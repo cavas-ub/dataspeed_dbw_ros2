@@ -150,17 +150,21 @@ DbwNode::DbwNode(const rclcpp::NodeOptions &options)
 
   // Setup Publishers
   pub_can_ = create_publisher<can_msgs::msg::Frame>("can_tx", 10);
-  pub_steer_ = create_publisher<ds_dbw_msgs::msg::SteeringReport>("steering_report", 2);
-  pub_brake_ = create_publisher<ds_dbw_msgs::msg::BrakeReport>("brake_report", 2);
-  pub_thrtl_ = create_publisher<ds_dbw_msgs::msg::ThrottleReport>("throttle_report", 2);
-  pub_gear_ = create_publisher<ds_dbw_msgs::msg::GearReport>("gear_report", 2);
+  pub_steer_rpt_ = create_publisher<ds_dbw_msgs::msg::SteeringReport>("steering/report", 2);
+  pub_steer_diag_ = create_publisher<ds_dbw_msgs::msg::SteeringDiagnostics>("steering/diag", 2);
+  pub_brake_rpt_ = create_publisher<ds_dbw_msgs::msg::BrakeReport>("brake/report", 2);
+  pub_brake_diag_ = create_publisher<ds_dbw_msgs::msg::BrakeDiagnostics>("brake/diag", 2);
+  pub_thrtl_rpt_ = create_publisher<ds_dbw_msgs::msg::ThrottleReport>("throttle/report", 2);
+  pub_thrtl_diag_ = create_publisher<ds_dbw_msgs::msg::ThrottleDiagnostics>("throttle/diag", 2);
+  pub_gear_rpt_ = create_publisher<ds_dbw_msgs::msg::GearReport>("gear/report", 2);
+  pub_gear_diag_ = create_publisher<ds_dbw_msgs::msg::GearDiagnostics>("gear/diag", 2);
   pub_veh_vel_ = create_publisher<ds_dbw_msgs::msg::VehicleVelocity>("vehicle_velocity", 2);
-  pub_thrtl_info_ = create_publisher<ds_dbw_msgs::msg::ThrottleInfo>("throttle_info", 2);
-  pub_brake_info_ = create_publisher<ds_dbw_msgs::msg::BrakeInfo>("brake_info", 2);
-  pub_ulc_ = create_publisher<ds_dbw_msgs::msg::UlcReport>("ulc_report", 2);
+  pub_thrtl_info_ = create_publisher<ds_dbw_msgs::msg::ThrottleInfo>("throttle/info", 2);
+  pub_brake_info_ = create_publisher<ds_dbw_msgs::msg::BrakeInfo>("brake/info", 2);
+  pub_ulc_ = create_publisher<ds_dbw_msgs::msg::UlcReport>("ulc/report", 2);
   pub_wheel_speeds_ = create_publisher<ds_dbw_msgs::msg::WheelSpeeds>("wheel_speeds", 2);
   pub_wheel_positions_ = create_publisher<ds_dbw_msgs::msg::WheelPositions>("wheel_positions", 2);
-  pub_misc_ = create_publisher<ds_dbw_msgs::msg::MiscReport>("misc_report", 2);
+  pub_misc_ = create_publisher<ds_dbw_msgs::msg::MiscReport>("misc/report", 2);
   pub_tire_pressures_ = create_publisher<ds_dbw_msgs::msg::TirePressures>("tire_pressures", 2);
   pub_imu_ = create_publisher<sensor_msgs::msg::Imu>("imu/data_raw", 10);
   pub_ecu_info_ = create_publisher<ds_dbw_msgs::msg::EcuInfo>("ecu_info", 10);
@@ -183,31 +187,31 @@ DbwNode::DbwNode(const rclcpp::NodeOptions &options)
   }
   {
     auto bind = std::bind(&DbwNode::recvSteeringCmd, this, _1);
-    sub_steer_ = create_subscription<ds_dbw_msgs::msg::SteeringCmd>("steering_cmd", 1, bind);
+    sub_steer_ = create_subscription<ds_dbw_msgs::msg::SteeringCmd>("steering/cmd", 1, bind);
   }
   {
     auto bind = std::bind(&DbwNode::recvBrakeCmd, this, _1);
-    sub_brake_ = create_subscription<ds_dbw_msgs::msg::BrakeCmd>("brake_cmd", 1, bind);
+    sub_brake_ = create_subscription<ds_dbw_msgs::msg::BrakeCmd>("brake/cmd", 1, bind);
   }
   {
     auto bind = std::bind(&DbwNode::recvThrottleCmd, this, _1);
-    sub_thrtl_ = create_subscription<ds_dbw_msgs::msg::ThrottleCmd>("throttle_cmd", 1, bind);
+    sub_thrtl_ = create_subscription<ds_dbw_msgs::msg::ThrottleCmd>("throttle/cmd", 1, bind);
   }
   {
     auto bind = std::bind(&DbwNode::recvGearCmd, this, _1);
-    sub_gear_ = create_subscription<ds_dbw_msgs::msg::GearCmd>("gear_cmd", 1, bind);
+    sub_gear_ = create_subscription<ds_dbw_msgs::msg::GearCmd>("gear/cmd", 1, bind);
   }
   {
     auto bind = std::bind(&DbwNode::recvMiscCmd, this, _1);
-    sub_misc_ = create_subscription<ds_dbw_msgs::msg::MiscCmd>("misc_cmd", 1, bind);
+    sub_misc_ = create_subscription<ds_dbw_msgs::msg::MiscCmd>("misc/cmd", 1, bind);
   }
   {
     auto bind = std::bind(&DbwNode::recvUlcCmd, this, _1);
-    sub_ulc_ = create_subscription<ds_dbw_msgs::msg::UlcCmd>("ulc_cmd", 1, bind);
+    sub_ulc_ = create_subscription<ds_dbw_msgs::msg::UlcCmd>("ulc/cmd", 1, bind);
   }
   {
-    auto bind = std::bind(&DbwNode::recvCalibrateSteering, this, _1);
-    sub_calibrate_steering_ = create_subscription<std_msgs::msg::Empty>("calibrate_steering", 1, bind);
+    auto bind = std::bind(&DbwNode::recvSteeringCalibrate, this, _1);
+    sub_calibrate_steering_ = create_subscription<std_msgs::msg::Empty>("steering/calibrate", 1, bind);
   }
 
   // Setup Timer
@@ -267,47 +271,13 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
               out.bad_rc = msg.bad_rc;
               if (true) { ///@TODO
                 out.degraded = msg_steer_rpt_2_.degraded;
-                out.degraded_cmd_type = msg_steer_rpt_2_.degraded_cmd_type;
-                out.degraded_comms = msg_steer_rpt_2_.degraded_comms;
-                out.degraded_internal = msg_steer_rpt_2_.degraded_internal;
-                out.degraded_vehicle = msg_steer_rpt_2_.degraded_vehicle;
-                out.degraded_actuator = msg_steer_rpt_2_.degraded_actuator;
-                out.fault_power = msg_steer_rpt_2_.fault_power;
-                out.fault_comms = msg_steer_rpt_2_.fault_comms;
-                out.fault_internal = msg_steer_rpt_2_.fault_internal;
-                out.fault_vehicle = msg_steer_rpt_2_.fault_vehicle;
-                out.fault_actuator = msg_steer_rpt_2_.fault_actuator;
                 out.limit_rate = NAN; ///@TODO
                 out.limit_value = NAN; ///@TODO
                 out.cmd_src.value = (uint8_t)msg_steer_rpt_2_.cmd_src;
               }
-              if (true) { ///@TODO
-                out.degraded_comms_dbw = msg_steer_rpt_3_.degraded_comms_dbw;
-                out.degraded_comms_dbw_gateway = msg_steer_rpt_3_.degraded_comms_dbw_gateway;
-                out.degraded_comms_dbw_brake = msg_steer_rpt_3_.degraded_comms_dbw_brake;
-                out.degraded_comms_dbw_thrtl = msg_steer_rpt_3_.degraded_comms_dbw_thrtl;
-                out.degraded_comms_dbw_gear = msg_steer_rpt_3_.degraded_comms_dbw_gear;
-                out.degraded_control_performance = msg_steer_rpt_3_.degraded_control_performance;
-                out.degraded_param_mismatch = msg_steer_rpt_3_.degraded_param_mismatch;
-                out.degraded_comms_vehicle = msg_steer_rpt_3_.degraded_comms_vehicle;
-                out.degraded_comms_actuator = msg_steer_rpt_3_.degraded_comms_actuator;
-                out.degraded_vehicle_speed = msg_steer_rpt_3_.degraded_vehicle_speed;
-                out.degraded_calibration = msg_steer_rpt_3_.degraded_calibration;
-                out.fault_comms_dbw = msg_steer_rpt_3_.fault_comms_dbw;
-                out.fault_comms_dbw_gateway = msg_steer_rpt_3_.fault_comms_dbw_gateway;
-                out.fault_comms_dbw_brake = msg_steer_rpt_3_.fault_comms_dbw_brake;
-                out.fault_comms_dbw_thrtl = msg_steer_rpt_3_.fault_comms_dbw_thrtl;
-                out.fault_comms_dbw_gear = msg_steer_rpt_3_.fault_comms_dbw_gear;
-                out.fault_comms_vehicle = msg_steer_rpt_3_.fault_comms_vehicle;
-                out.fault_comms_actuator = msg_steer_rpt_3_.fault_comms_actuator;
-                out.fault_vehicle_speed = msg_steer_rpt_3_.fault_vehicle_speed;
-                out.fault_actuator_torque_sensor = msg_steer_rpt_3_.fault_actuator_torque_sensor;
-                out.fault_actuator_config = msg_steer_rpt_3_.fault_actuator_config;
-                out.fault_calibration = msg_steer_rpt_3_.fault_calibration;
-              }
-              pub_steer_->publish(out);
+              pub_steer_rpt_->publish(out);
               if (msg.fault) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering fault");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering fault");
               } else if (fault_prev) {
                 RCLCPP_INFO(get_logger(), "Steering fault cleared");
               }
@@ -397,60 +367,15 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
               out.bad_rc = msg.bad_rc;
               if (true) { ///@TODO
                 out.degraded = msg_brake_rpt_2_.degraded;
-                out.degraded_cmd_type = msg_brake_rpt_2_.degraded_cmd_type;
-                out.degraded_comms = msg_brake_rpt_2_.degraded_comms;
-                out.degraded_internal = msg_brake_rpt_2_.degraded_internal;
-                out.degraded_vehicle = msg_brake_rpt_2_.degraded_vehicle;
-                out.degraded_actuator = msg_brake_rpt_2_.degraded_actuator;
-                out.fault_power = msg_brake_rpt_2_.fault_power;
-                out.fault_comms = msg_brake_rpt_2_.fault_comms;
-                out.fault_internal = msg_brake_rpt_2_.fault_internal;
-                out.fault_vehicle = msg_brake_rpt_2_.fault_vehicle;
-                out.fault_actuator = msg_brake_rpt_2_.fault_actuator;
                 out.limit_rate = NAN; ///@TODO
                 out.limit_value = NAN; ///@TODO
                 out.brake_available_duration = NAN; ///@TODO
                 out.external_button = msg_brake_rpt_2_.external_button;
                 out.cmd_src.value = (uint8_t)msg_brake_rpt_2_.cmd_src;
               }
-              if (true) { ///@TODO
-                out.degraded_comms_dbw = msg_brake_rpt_3_.degraded_comms_dbw;
-                out.degraded_comms_dbw_gateway = msg_brake_rpt_3_.degraded_comms_dbw_gateway;
-                out.degraded_comms_dbw_steer = msg_brake_rpt_3_.degraded_comms_dbw_steer;
-                out.degraded_comms_dbw_thrtl = msg_brake_rpt_3_.degraded_comms_dbw_thrtl;
-                out.degraded_comms_dbw_gear = msg_brake_rpt_3_.degraded_comms_dbw_gear;
-                out.degraded_control_performance = msg_brake_rpt_3_.degraded_control_performance;
-                out.degraded_param_mismatch = msg_brake_rpt_3_.degraded_param_mismatch;
-                out.degraded_comms_vehicle = msg_brake_rpt_3_.degraded_comms_vehicle;
-                out.degraded_comms_actuator = msg_brake_rpt_3_.degraded_comms_actuator;
-                out.degraded_comms_actuator_1 = msg_brake_rpt_3_.degraded_comms_actuator_1;
-                out.degraded_comms_actuator_2 = msg_brake_rpt_3_.degraded_comms_actuator_2;
-                out.degraded_vehicle_speed = msg_brake_rpt_3_.degraded_vehicle_speed;
-                out.degraded_btsi_stuck_low = msg_brake_rpt_3_.degraded_btsi_stuck_low;
-                out.degraded_btsi_stuck_high = msg_brake_rpt_3_.degraded_btsi_stuck_high;
-                out.degraded_actuator_aeb_deny = msg_brake_rpt_3_.degraded_actuator_aeb_deny;
-                out.degraded_actuator_1 = msg_brake_rpt_3_.degraded_actuator_1;
-                out.degraded_actuator_2 = msg_brake_rpt_3_.degraded_actuator_2;
-                out.degraded_calibration = msg_brake_rpt_3_.degraded_calibration;
-                out.fault_comms_dbw = msg_brake_rpt_3_.fault_comms_dbw;
-                out.fault_comms_dbw_gateway = msg_brake_rpt_3_.fault_comms_dbw_gateway;
-                out.fault_comms_dbw_steer = msg_brake_rpt_3_.fault_comms_dbw_steer;
-                out.fault_comms_dbw_thrtl = msg_brake_rpt_3_.fault_comms_dbw_thrtl;
-                out.fault_comms_dbw_gear = msg_brake_rpt_3_.fault_comms_dbw_gear;
-                out.fault_comms_vehicle = msg_brake_rpt_3_.fault_comms_vehicle;
-                out.fault_comms_actuator = msg_brake_rpt_3_.fault_comms_actuator;
-                out.fault_comms_actuator_1 = msg_brake_rpt_3_.fault_comms_actuator_1;
-                out.fault_comms_actuator_2 = msg_brake_rpt_3_.fault_comms_actuator_2;
-                out.fault_vehicle_speed = msg_brake_rpt_3_.fault_vehicle_speed;
-                out.fault_actuator_acc_deny = msg_brake_rpt_3_.fault_actuator_acc_deny;
-                out.fault_actuator_pedal_torque = msg_brake_rpt_3_.fault_actuator_pedal_torque;
-                out.fault_actuator_1 = msg_brake_rpt_3_.fault_actuator_1;
-                out.fault_actuator_2 = msg_brake_rpt_3_.fault_actuator_2;
-                out.fault_calibration = msg_brake_rpt_3_.fault_calibration;
-              }
-              pub_brake_->publish(out);
+              pub_brake_rpt_->publish(out);
               if (msg.fault) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake fault");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake fault");
               } else if (fault_prev) {
                 RCLCPP_INFO(get_logger(), "Brake fault cleared");
               }
@@ -519,45 +444,13 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
               out.bad_rc = msg.bad_rc;
               if (true) { ///@TODO
                 out.degraded = msg_thrtl_rpt_2_.degraded;
-                out.degraded_cmd_type = msg_thrtl_rpt_2_.degraded_cmd_type;
-                out.degraded_comms = msg_thrtl_rpt_2_.degraded_comms;
-                out.degraded_internal = msg_thrtl_rpt_2_.degraded_internal;
-                out.degraded_vehicle = msg_thrtl_rpt_2_.degraded_vehicle;
-                out.degraded_sensor = msg_thrtl_rpt_2_.degraded_sensor;
-                out.fault_power = msg_thrtl_rpt_2_.fault_power;
-                out.fault_comms = msg_thrtl_rpt_2_.fault_comms;
-                out.fault_internal = msg_thrtl_rpt_2_.fault_internal;
-                out.fault_vehicle = msg_thrtl_rpt_2_.fault_vehicle;
-                out.fault_sensor = msg_thrtl_rpt_2_.fault_sensor;
                 out.limit_rate = NAN; ///@TODO
                 out.limit_value = NAN; ///@TODO
                 out.cmd_src.value = (uint8_t)msg_thrtl_rpt_2_.cmd_src;
               }
-              if (true) { ///@TODO
-                out.degraded_comms_dbw = msg_thrtl_rpt_3_.degraded_comms_dbw;
-                out.degraded_comms_dbw_gateway = msg_thrtl_rpt_3_.degraded_comms_dbw_gateway;
-                out.degraded_comms_dbw_steer = msg_thrtl_rpt_3_.degraded_comms_dbw_steer;
-                out.degraded_comms_dbw_brake = msg_thrtl_rpt_3_.degraded_comms_dbw_brake;
-                out.degraded_comms_dbw_gear = msg_thrtl_rpt_3_.degraded_comms_dbw_gear;
-                out.degraded_control_performance = msg_thrtl_rpt_3_.degraded_control_performance;
-                out.degraded_param_mismatch = msg_thrtl_rpt_3_.degraded_param_mismatch;
-                out.degraded_vehicle_speed = msg_thrtl_rpt_3_.degraded_vehicle_speed;
-                out.degraded_aped_feedback = msg_thrtl_rpt_3_.degraded_aped_feedback;
-                out.degraded_calibration = msg_thrtl_rpt_3_.degraded_calibration;
-                out.fault_comms_dbw = msg_thrtl_rpt_3_.fault_comms_dbw;
-                out.fault_comms_dbw_gateway = msg_thrtl_rpt_3_.fault_comms_dbw_gateway;
-                out.fault_comms_dbw_steer = msg_thrtl_rpt_3_.fault_comms_dbw_steer;
-                out.fault_comms_dbw_brake = msg_thrtl_rpt_3_.fault_comms_dbw_brake;
-                out.fault_comms_dbw_gear = msg_thrtl_rpt_3_.fault_comms_dbw_gear;
-                out.fault_vehicle_speed = msg_thrtl_rpt_3_.fault_vehicle_speed;
-                out.fault_aped_sensor_1 = msg_thrtl_rpt_3_.fault_aped_sensor_1;
-                out.fault_aped_sensor_2 = msg_thrtl_rpt_3_.fault_aped_sensor_2;
-                out.fault_aped_sensor_mismatch = msg_thrtl_rpt_3_.fault_aped_sensor_mismatch;
-                out.fault_calibration = msg_thrtl_rpt_3_.fault_calibration;
-              }
-              pub_thrtl_->publish(out);
+              pub_thrtl_rpt_->publish(out);
               if (msg.fault) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle fault");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle fault");
               } else if (fault_prev) {
                 RCLCPP_INFO(get_logger(), "Throttle fault cleared");
               }
@@ -613,53 +506,11 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
               out.bad_crc = msg.bad_crc;
               if (true) { ///@TODO
                 out.degraded = msg_gear_rpt_2_.degraded;
-                out.degraded_cmd_type = msg_gear_rpt_2_.degraded_cmd_type;
-                out.degraded_comms = msg_gear_rpt_2_.degraded_comms;
-                out.degraded_internal = msg_gear_rpt_2_.degraded_internal;
-                out.degraded_vehicle = msg_gear_rpt_2_.degraded_vehicle;
-                out.degraded_actuator = msg_gear_rpt_2_.degraded_actuator;
-                out.fault_power = msg_gear_rpt_2_.fault_power;
-                out.fault_comms = msg_gear_rpt_2_.fault_comms;
-                out.fault_internal = msg_gear_rpt_2_.fault_internal;
-                out.fault_vehicle = msg_gear_rpt_2_.fault_vehicle;
-                out.fault_actuator = msg_gear_rpt_2_.fault_actuator;
                 out.cmd_src.value = (uint8_t)msg_gear_rpt_2_.cmd_src;
               }
-              if (true) { ///@TODO
-                out.degraded_comms_dbw = msg_gear_rpt_3_.degraded_comms_dbw;
-                out.degraded_comms_dbw_gateway = msg_gear_rpt_3_.degraded_comms_dbw_gateway;
-                out.degraded_comms_dbw_steer = msg_gear_rpt_3_.degraded_comms_dbw_steer;
-                out.degraded_comms_dbw_brake = msg_gear_rpt_3_.degraded_comms_dbw_brake;
-                out.degraded_comms_dbw_thrtl = msg_gear_rpt_3_.degraded_comms_dbw_thrtl;
-                out.degraded_control_performance = msg_gear_rpt_3_.degraded_control_performance;
-                out.degraded_param_mismatch = msg_gear_rpt_3_.degraded_param_mismatch;
-                out.degraded_comms_vehicle = msg_gear_rpt_3_.degraded_comms_vehicle;
-                out.degraded_comms_vehicle_1 = msg_gear_rpt_3_.degraded_comms_vehicle_1;
-                out.degraded_comms_vehicle_2 = msg_gear_rpt_3_.degraded_comms_vehicle_2;
-                out.degraded_comms_actuator = msg_gear_rpt_3_.degraded_comms_actuator;
-                out.degraded_comms_actuator_1 = msg_gear_rpt_3_.degraded_comms_actuator_1;
-                out.degraded_comms_actuator_2 = msg_gear_rpt_3_.degraded_comms_actuator_2;
-                out.degraded_vehicle_speed = msg_gear_rpt_3_.degraded_vehicle_speed;
-                out.degraded_gear_mismatch = msg_gear_rpt_3_.degraded_gear_mismatch;
-                out.degraded_power = msg_gear_rpt_3_.degraded_power;
-                out.degraded_calibration = msg_gear_rpt_3_.degraded_calibration;
-                out.fault_comms_dbw = msg_gear_rpt_3_.fault_comms_dbw;
-                out.fault_comms_dbw_gateway = msg_gear_rpt_3_.fault_comms_dbw_gateway;
-                out.fault_comms_dbw_steer = msg_gear_rpt_3_.fault_comms_dbw_steer;
-                out.fault_comms_dbw_brake = msg_gear_rpt_3_.fault_comms_dbw_brake;
-                out.fault_comms_dbw_thrtl = msg_gear_rpt_3_.fault_comms_dbw_thrtl;
-                out.fault_comms_vehicle = msg_gear_rpt_3_.fault_comms_vehicle;
-                out.fault_comms_vehicle_1 = msg_gear_rpt_3_.fault_comms_vehicle_1;
-                out.fault_comms_vehicle_2 = msg_gear_rpt_3_.fault_comms_vehicle_2;
-                out.fault_comms_actuator = msg_gear_rpt_3_.fault_comms_actuator;
-                out.fault_comms_actuator_1 = msg_gear_rpt_3_.fault_comms_actuator_1;
-                out.fault_comms_actuator_2 = msg_gear_rpt_3_.fault_comms_actuator_2;
-                out.fault_vehicle_speed = msg_gear_rpt_3_.fault_vehicle_speed;
-                out.fault_calibration = msg_gear_rpt_3_.fault_calibration;
-              }
-              pub_gear_->publish(out);
+              pub_gear_rpt_->publish(out);
               if (msg.fault) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear fault");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear fault");
               } else if (fault_prev) {
                 RCLCPP_INFO(get_logger(), "Gear fault cleared");
               }
@@ -929,40 +780,76 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
           const auto &msg = msg_steer_rpt_2_;
           if (msg.validCrc()) {
             if (msg_steer_rpt_2_rc_.valid(msg, msg_can->header.stamp)) {
+              ds_dbw_msgs::msg::SteeringDiagnostics out;
+              out.degraded = msg_steer_rpt_2_.degraded;
+              out.degraded_cmd_type = msg_steer_rpt_2_.degraded_cmd_type;
+              out.degraded_comms = msg_steer_rpt_2_.degraded_comms;
+              out.degraded_internal = msg_steer_rpt_2_.degraded_internal;
+              out.degraded_vehicle = msg_steer_rpt_2_.degraded_vehicle;
+              out.degraded_actuator = msg_steer_rpt_2_.degraded_actuator;
+              out.degraded_comms_dbw = msg_steer_rpt_3_.degraded_comms_dbw;
+              out.degraded_comms_dbw_gateway = msg_steer_rpt_3_.degraded_comms_dbw_gateway;
+              out.degraded_comms_dbw_brake = msg_steer_rpt_3_.degraded_comms_dbw_brake;
+              out.degraded_comms_dbw_thrtl = msg_steer_rpt_3_.degraded_comms_dbw_thrtl;
+              out.degraded_comms_dbw_gear = msg_steer_rpt_3_.degraded_comms_dbw_gear;
+              out.degraded_control_performance = msg_steer_rpt_3_.degraded_control_performance;
+              out.degraded_param_mismatch = msg_steer_rpt_3_.degraded_param_mismatch;
+              out.degraded_comms_vehicle = msg_steer_rpt_3_.degraded_comms_vehicle;
+              out.degraded_comms_actuator = msg_steer_rpt_3_.degraded_comms_actuator;
+              out.degraded_vehicle_speed = msg_steer_rpt_3_.degraded_vehicle_speed;
+              out.degraded_calibration = msg_steer_rpt_3_.degraded_calibration;
+              out.fault = msg_steer_rpt_1_.fault;
+              out.fault_power = msg_steer_rpt_2_.fault_power;
+              out.fault_comms = msg_steer_rpt_2_.fault_comms;
+              out.fault_internal = msg_steer_rpt_2_.fault_internal;
+              out.fault_vehicle = msg_steer_rpt_2_.fault_vehicle;
+              out.fault_actuator = msg_steer_rpt_2_.fault_actuator;
+              out.fault_comms_dbw = msg_steer_rpt_3_.fault_comms_dbw;
+              out.fault_comms_dbw_gateway = msg_steer_rpt_3_.fault_comms_dbw_gateway;
+              out.fault_comms_dbw_brake = msg_steer_rpt_3_.fault_comms_dbw_brake;
+              out.fault_comms_dbw_thrtl = msg_steer_rpt_3_.fault_comms_dbw_thrtl;
+              out.fault_comms_dbw_gear = msg_steer_rpt_3_.fault_comms_dbw_gear;
+              out.fault_comms_vehicle = msg_steer_rpt_3_.fault_comms_vehicle;
+              out.fault_comms_actuator = msg_steer_rpt_3_.fault_comms_actuator;
+              out.fault_vehicle_speed = msg_steer_rpt_3_.fault_vehicle_speed;
+              out.fault_actuator_torque_sensor = msg_steer_rpt_3_.fault_actuator_torque_sensor;
+              out.fault_actuator_config = msg_steer_rpt_3_.fault_actuator_config;
+              out.fault_calibration = msg_steer_rpt_3_.fault_calibration;
+              pub_steer_diag_->publish(out);
               if (msg.degraded) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering degraded");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering degraded");
               } else if (degraded_prev) {
                 RCLCPP_INFO(get_logger(), "Steering degraded state cleared");
               }
               if (msg.degraded_cmd_type) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering degraded: Unsupported cmd_type");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering degraded: Unsupported cmd_type");
               }
               if (msg.degraded_comms) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering degraded: Lost comms");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering degraded: Lost comms");
               }
               if (msg.degraded_internal) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering degraded: Internal");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering degraded: Internal");
               }
               if (msg.degraded_vehicle) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering degraded: Vehicle");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering degraded: Vehicle");
               }
               if (msg.degraded_actuator) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering degraded: Actuator");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering degraded: Actuator");
               }
               if (msg.fault_power) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering fault: Drive-By-Wire power voltage");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering fault: Drive-By-Wire power voltage");
               }
               if (msg.fault_comms) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering fault: Lost comms");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering fault: Lost comms");
               }
               if (msg.fault_internal) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering fault: Internal fault");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering fault: Internal fault");
               }
               if (msg.fault_vehicle) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering fault: Fault in vehicle");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering fault: Fault in vehicle");
               }
               if (msg.fault_actuator) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering fault: Fault in actuator");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering fault: Fault in actuator");
               }
             } else {
               RCLCPP_WARN(get_logger(), "Ignoring steer report 2 with repeated rolling counter value");
@@ -982,40 +869,87 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
           const auto &msg = msg_brake_rpt_2_;
           if (msg.validCrc()) {
             if (msg_brake_rpt_2_rc_.valid(msg, msg_can->header.stamp)) {
+              ds_dbw_msgs::msg::BrakeDiagnostics out;
+              out.degraded = msg_brake_rpt_2_.degraded;
+              out.degraded_cmd_type = msg_brake_rpt_2_.degraded_cmd_type;
+              out.degraded_comms = msg_brake_rpt_2_.degraded_comms;
+              out.degraded_internal = msg_brake_rpt_2_.degraded_internal;
+              out.degraded_vehicle = msg_brake_rpt_2_.degraded_vehicle;
+              out.degraded_actuator = msg_brake_rpt_2_.degraded_actuator;
+              out.degraded_comms_dbw = msg_brake_rpt_3_.degraded_comms_dbw;
+              out.degraded_comms_dbw_gateway = msg_brake_rpt_3_.degraded_comms_dbw_gateway;
+              out.degraded_comms_dbw_steer = msg_brake_rpt_3_.degraded_comms_dbw_steer;
+              out.degraded_comms_dbw_thrtl = msg_brake_rpt_3_.degraded_comms_dbw_thrtl;
+              out.degraded_comms_dbw_gear = msg_brake_rpt_3_.degraded_comms_dbw_gear;
+              out.degraded_control_performance = msg_brake_rpt_3_.degraded_control_performance;
+              out.degraded_param_mismatch = msg_brake_rpt_3_.degraded_param_mismatch;
+              out.degraded_comms_vehicle = msg_brake_rpt_3_.degraded_comms_vehicle;
+              out.degraded_comms_actuator = msg_brake_rpt_3_.degraded_comms_actuator;
+              out.degraded_comms_actuator_1 = msg_brake_rpt_3_.degraded_comms_actuator_1;
+              out.degraded_comms_actuator_2 = msg_brake_rpt_3_.degraded_comms_actuator_2;
+              out.degraded_vehicle_speed = msg_brake_rpt_3_.degraded_vehicle_speed;
+              out.degraded_btsi_stuck_low = msg_brake_rpt_3_.degraded_btsi_stuck_low;
+              out.degraded_btsi_stuck_high = msg_brake_rpt_3_.degraded_btsi_stuck_high;
+              out.degraded_actuator_aeb_deny = msg_brake_rpt_3_.degraded_actuator_aeb_deny;
+              out.degraded_actuator_1 = msg_brake_rpt_3_.degraded_actuator_1;
+              out.degraded_actuator_2 = msg_brake_rpt_3_.degraded_actuator_2;
+              out.degraded_calibration = msg_brake_rpt_3_.degraded_calibration;
+              out.fault = msg_brake_rpt_1_.fault;
+              out.fault_power = msg_brake_rpt_2_.fault_power;
+              out.fault_comms = msg_brake_rpt_2_.fault_comms;
+              out.fault_internal = msg_brake_rpt_2_.fault_internal;
+              out.fault_vehicle = msg_brake_rpt_2_.fault_vehicle;
+              out.fault_actuator = msg_brake_rpt_2_.fault_actuator;
+              out.fault_comms_dbw = msg_brake_rpt_3_.fault_comms_dbw;
+              out.fault_comms_dbw_gateway = msg_brake_rpt_3_.fault_comms_dbw_gateway;
+              out.fault_comms_dbw_steer = msg_brake_rpt_3_.fault_comms_dbw_steer;
+              out.fault_comms_dbw_thrtl = msg_brake_rpt_3_.fault_comms_dbw_thrtl;
+              out.fault_comms_dbw_gear = msg_brake_rpt_3_.fault_comms_dbw_gear;
+              out.fault_comms_vehicle = msg_brake_rpt_3_.fault_comms_vehicle;
+              out.fault_comms_actuator = msg_brake_rpt_3_.fault_comms_actuator;
+              out.fault_comms_actuator_1 = msg_brake_rpt_3_.fault_comms_actuator_1;
+              out.fault_comms_actuator_2 = msg_brake_rpt_3_.fault_comms_actuator_2;
+              out.fault_vehicle_speed = msg_brake_rpt_3_.fault_vehicle_speed;
+              out.fault_actuator_acc_deny = msg_brake_rpt_3_.fault_actuator_acc_deny;
+              out.fault_actuator_pedal_torque = msg_brake_rpt_3_.fault_actuator_pedal_torque;
+              out.fault_actuator_1 = msg_brake_rpt_3_.fault_actuator_1;
+              out.fault_actuator_2 = msg_brake_rpt_3_.fault_actuator_2;
+              out.fault_calibration = msg_brake_rpt_3_.fault_calibration;
+              pub_brake_diag_->publish(out);
               if (msg.degraded) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake degraded");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake degraded");
               } else if (degraded_prev) {
                 RCLCPP_INFO(get_logger(), "Brake degraded state cleared");
               }
               if (msg.degraded_cmd_type) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake degraded: Unsupported cmd_type");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake degraded: Unsupported cmd_type");
               }
               if (msg.degraded_comms) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake degraded: Lost comms");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake degraded: Lost comms");
               }
               if (msg.degraded_internal) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake degraded: Internal");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake degraded: Internal");
               }
               if (msg.degraded_vehicle) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake degraded: Vehicle");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake degraded: Vehicle");
               }
               if (msg.degraded_actuator) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake degraded: Actuator");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake degraded: Actuator");
               }
               if (msg.fault_power) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake fault: Drive-By-Wire power voltage");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake fault: Drive-By-Wire power voltage");
               }
               if (msg.fault_comms) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake fault: Lost comms");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake fault: Lost comms");
               }
               if (msg.fault_internal) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake fault: Internal fault");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake fault: Internal fault");
               }
               if (msg.fault_vehicle) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake fault: Fault in vehicle");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake fault: Fault in vehicle");
               }
               if (msg.fault_actuator) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake fault: Fault in actuator");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake fault: Fault in actuator");
               }
             } else {
               RCLCPP_WARN(get_logger(), "Ignoring brake report 2 with repeated rolling counter value");
@@ -1035,40 +969,74 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
           const auto &msg = msg_thrtl_rpt_2_;
           if (msg.validCrc()) {
             if (msg_thrtl_rpt_2_rc_.valid(msg, msg_can->header.stamp)) {
+              ds_dbw_msgs::msg::ThrottleDiagnostics out;
+              out.degraded = msg_thrtl_rpt_2_.degraded;
+              out.degraded_cmd_type = msg_thrtl_rpt_2_.degraded_cmd_type;
+              out.degraded_comms = msg_thrtl_rpt_2_.degraded_comms;
+              out.degraded_internal = msg_thrtl_rpt_2_.degraded_internal;
+              out.degraded_vehicle = msg_thrtl_rpt_2_.degraded_vehicle;
+              out.degraded_sensor = msg_thrtl_rpt_2_.degraded_sensor;
+              out.degraded_comms_dbw = msg_thrtl_rpt_3_.degraded_comms_dbw;
+              out.degraded_comms_dbw_gateway = msg_thrtl_rpt_3_.degraded_comms_dbw_gateway;
+              out.degraded_comms_dbw_steer = msg_thrtl_rpt_3_.degraded_comms_dbw_steer;
+              out.degraded_comms_dbw_brake = msg_thrtl_rpt_3_.degraded_comms_dbw_brake;
+              out.degraded_comms_dbw_gear = msg_thrtl_rpt_3_.degraded_comms_dbw_gear;
+              out.degraded_control_performance = msg_thrtl_rpt_3_.degraded_control_performance;
+              out.degraded_param_mismatch = msg_thrtl_rpt_3_.degraded_param_mismatch;
+              out.degraded_vehicle_speed = msg_thrtl_rpt_3_.degraded_vehicle_speed;
+              out.degraded_aped_feedback = msg_thrtl_rpt_3_.degraded_aped_feedback;
+              out.degraded_calibration = msg_thrtl_rpt_3_.degraded_calibration;
+              out.fault = msg_thrtl_rpt_1_.fault;
+              out.fault_power = msg_thrtl_rpt_2_.fault_power;
+              out.fault_comms = msg_thrtl_rpt_2_.fault_comms;
+              out.fault_internal = msg_thrtl_rpt_2_.fault_internal;
+              out.fault_vehicle = msg_thrtl_rpt_2_.fault_vehicle;
+              out.fault_sensor = msg_thrtl_rpt_2_.fault_sensor;
+              out.fault_comms_dbw = msg_thrtl_rpt_3_.fault_comms_dbw;
+              out.fault_comms_dbw_gateway = msg_thrtl_rpt_3_.fault_comms_dbw_gateway;
+              out.fault_comms_dbw_steer = msg_thrtl_rpt_3_.fault_comms_dbw_steer;
+              out.fault_comms_dbw_brake = msg_thrtl_rpt_3_.fault_comms_dbw_brake;
+              out.fault_comms_dbw_gear = msg_thrtl_rpt_3_.fault_comms_dbw_gear;
+              out.fault_vehicle_speed = msg_thrtl_rpt_3_.fault_vehicle_speed;
+              out.fault_aped_sensor_1 = msg_thrtl_rpt_3_.fault_aped_sensor_1;
+              out.fault_aped_sensor_2 = msg_thrtl_rpt_3_.fault_aped_sensor_2;
+              out.fault_aped_sensor_mismatch = msg_thrtl_rpt_3_.fault_aped_sensor_mismatch;
+              out.fault_calibration = msg_thrtl_rpt_3_.fault_calibration;
+              pub_thrtl_diag_->publish(out);
               if (msg.degraded) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle degraded");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle degraded");
               } else if (degraded_prev) {
                 RCLCPP_INFO(get_logger(), "Throttle degraded state cleared");
               }
               if (msg.degraded_cmd_type) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle degraded: Unsupported cmd_type");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle degraded: Unsupported cmd_type");
               }
               if (msg.degraded_comms) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle degraded: Lost comms");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle degraded: Lost comms");
               }
               if (msg.degraded_internal) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle degraded: Internal");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle degraded: Internal");
               }
               if (msg.degraded_vehicle) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle degraded: Vehicle");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle degraded: Vehicle");
               }
               if (msg.degraded_sensor) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle degraded: Sensor");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle degraded: Sensor");
               }
               if (msg.fault_power) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle fault: Drive-By-Wire power voltage");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle fault: Drive-By-Wire power voltage");
               }
               if (msg.fault_comms) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle fault: Lost comms");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle fault: Lost comms");
               }
               if (msg.fault_internal) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle fault: Internal fault");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle fault: Internal fault");
               }
               if (msg.fault_vehicle) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle fault: Fault in vehicle");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle fault: Fault in vehicle");
               }
               if (msg.fault_sensor) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle fault: Fault in sensor");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle fault: Fault in sensor");
               }
             } else {
               RCLCPP_WARN(get_logger(), "Ignoring throttle report 2 with repeated rolling counter value");
@@ -1088,40 +1056,84 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
           const auto &msg = msg_gear_rpt_2_;
           if (msg.validCrc()) {
             if (msg_gear_rpt_2_rc_.valid(msg, msg_can->header.stamp)) {
+              ds_dbw_msgs::msg::GearDiagnostics out;
+              out.degraded = msg_gear_rpt_2_.degraded;
+              out.degraded_cmd_type = msg_gear_rpt_2_.degraded_cmd_type;
+              out.degraded_comms = msg_gear_rpt_2_.degraded_comms;
+              out.degraded_internal = msg_gear_rpt_2_.degraded_internal;
+              out.degraded_vehicle = msg_gear_rpt_2_.degraded_vehicle;
+              out.degraded_actuator = msg_gear_rpt_2_.degraded_actuator;
+              out.degraded_comms_dbw = msg_gear_rpt_3_.degraded_comms_dbw;
+              out.degraded_comms_dbw_gateway = msg_gear_rpt_3_.degraded_comms_dbw_gateway;
+              out.degraded_comms_dbw_steer = msg_gear_rpt_3_.degraded_comms_dbw_steer;
+              out.degraded_comms_dbw_brake = msg_gear_rpt_3_.degraded_comms_dbw_brake;
+              out.degraded_comms_dbw_thrtl = msg_gear_rpt_3_.degraded_comms_dbw_thrtl;
+              out.degraded_control_performance = msg_gear_rpt_3_.degraded_control_performance;
+              out.degraded_param_mismatch = msg_gear_rpt_3_.degraded_param_mismatch;
+              out.degraded_comms_vehicle = msg_gear_rpt_3_.degraded_comms_vehicle;
+              out.degraded_comms_vehicle_1 = msg_gear_rpt_3_.degraded_comms_vehicle_1;
+              out.degraded_comms_vehicle_2 = msg_gear_rpt_3_.degraded_comms_vehicle_2;
+              out.degraded_comms_actuator = msg_gear_rpt_3_.degraded_comms_actuator;
+              out.degraded_comms_actuator_1 = msg_gear_rpt_3_.degraded_comms_actuator_1;
+              out.degraded_comms_actuator_2 = msg_gear_rpt_3_.degraded_comms_actuator_2;
+              out.degraded_vehicle_speed = msg_gear_rpt_3_.degraded_vehicle_speed;
+              out.degraded_gear_mismatch = msg_gear_rpt_3_.degraded_gear_mismatch;
+              out.degraded_power = msg_gear_rpt_3_.degraded_power;
+              out.degraded_calibration = msg_gear_rpt_3_.degraded_calibration;
+              out.fault = msg_gear_rpt_1_.fault;
+              out.fault_power = msg_gear_rpt_2_.fault_power;
+              out.fault_comms = msg_gear_rpt_2_.fault_comms;
+              out.fault_internal = msg_gear_rpt_2_.fault_internal;
+              out.fault_vehicle = msg_gear_rpt_2_.fault_vehicle;
+              out.fault_actuator = msg_gear_rpt_2_.fault_actuator;
+              out.fault_comms_dbw = msg_gear_rpt_3_.fault_comms_dbw;
+              out.fault_comms_dbw_gateway = msg_gear_rpt_3_.fault_comms_dbw_gateway;
+              out.fault_comms_dbw_steer = msg_gear_rpt_3_.fault_comms_dbw_steer;
+              out.fault_comms_dbw_brake = msg_gear_rpt_3_.fault_comms_dbw_brake;
+              out.fault_comms_dbw_thrtl = msg_gear_rpt_3_.fault_comms_dbw_thrtl;
+              out.fault_comms_vehicle = msg_gear_rpt_3_.fault_comms_vehicle;
+              out.fault_comms_vehicle_1 = msg_gear_rpt_3_.fault_comms_vehicle_1;
+              out.fault_comms_vehicle_2 = msg_gear_rpt_3_.fault_comms_vehicle_2;
+              out.fault_comms_actuator = msg_gear_rpt_3_.fault_comms_actuator;
+              out.fault_comms_actuator_1 = msg_gear_rpt_3_.fault_comms_actuator_1;
+              out.fault_comms_actuator_2 = msg_gear_rpt_3_.fault_comms_actuator_2;
+              out.fault_vehicle_speed = msg_gear_rpt_3_.fault_vehicle_speed;
+              out.fault_calibration = msg_gear_rpt_3_.fault_calibration;
+              pub_gear_diag_->publish(out);
               if (msg.degraded) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear degraded");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear degraded");
               } else if (degraded_prev) {
                 RCLCPP_INFO(get_logger(), "Gear degraded state cleared");
               }
               if (msg.degraded_cmd_type) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear degraded: Unsupported cmd_type");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear degraded: Unsupported cmd_type");
               }
               if (msg.degraded_comms) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear degraded: Lost comms");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear degraded: Lost comms");
               }
               if (msg.degraded_internal) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear degraded: Internal");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear degraded: Internal");
               }
               if (msg.degraded_vehicle) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear degraded: Vehicle");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear degraded: Vehicle");
               }
               if (msg.degraded_actuator) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear degraded: Actuator");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear degraded: Actuator");
               }
               if (msg.fault_power) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear fault: Drive-By-Wire power voltage");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear fault: Drive-By-Wire power voltage");
               }
               if (msg.fault_comms) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear fault: Lost comms");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear fault: Lost comms");
               }
               if (msg.fault_internal) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear fault: Internal fault");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear fault: Internal fault");
               }
               if (msg.fault_vehicle) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear fault: Fault in vehicle");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear fault: Fault in vehicle");
               }
               if (msg.fault_actuator) {
-                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear fault: Fault in actuator");
+                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear fault: Fault in actuator");
               }
             } else {
               RCLCPP_WARN(get_logger(), "Ignoring gear report 2 with repeated rolling counter value");
@@ -1140,67 +1152,67 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
           const auto &msg = msg_steer_rpt_3_;
           if (msg.validCrc()) {
             if (msg.degraded_comms_dbw) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering degraded: Lost comms with other Drive-By-Wire module(s)");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering degraded: Lost comms with other Drive-By-Wire module(s)");
             }
             if (msg.degraded_comms_dbw_gateway) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering degraded: Lost comms with other Drive-By-Wire gateway module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering degraded: Lost comms with other Drive-By-Wire gateway module");
             }
             if (msg.degraded_comms_dbw_brake) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering degraded: Lost comms with other Drive-By-Wire brake module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering degraded: Lost comms with other Drive-By-Wire brake module");
             }
             if (msg.degraded_comms_dbw_thrtl) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering degraded: Lost comms with other Drive-By-Wire throttle module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering degraded: Lost comms with other Drive-By-Wire throttle module");
             }
             if (msg.degraded_comms_dbw_gear) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering degraded: Lost comms with other Drive-By-Wire gear module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering degraded: Lost comms with other Drive-By-Wire gear module");
             }
             if (msg.degraded_control_performance) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering degraded: Control performance");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering degraded: Control performance");
             }
             if (msg.degraded_param_mismatch) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering degraded: System parameter mismatch with other Drive-By-Wire modules");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering degraded: System parameter mismatch with other Drive-By-Wire modules");
             }
             if (msg.degraded_comms_vehicle) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering degraded: Lost comms with vehicle module(s)");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering degraded: Lost comms with vehicle module(s)");
             }
             if (msg.degraded_comms_actuator) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering degraded: Lost comms with actuator");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering degraded: Lost comms with actuator");
             }
             if (msg.degraded_vehicle_speed) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering degraded: Unknown or invalid vehicle speed");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering degraded: Unknown or invalid vehicle speed");
             }
             if (msg.degraded_calibration) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering degraded: Calibration");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering degraded: Calibration");
             }
             if (msg.fault_comms_dbw) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering fault: Lost comms with other Drive-By-Wire module(s)");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering fault: Lost comms with other Drive-By-Wire module(s)");
             }
             if (msg.fault_comms_dbw_gateway) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering fault: Lost comms with other Drive-By-Wire gateway module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering fault: Lost comms with other Drive-By-Wire gateway module");
             }
             if (msg.fault_comms_dbw_brake) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering fault: Lost comms with other Drive-By-Wire brake module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering fault: Lost comms with other Drive-By-Wire brake module");
             }
             if (msg.fault_comms_dbw_thrtl) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering fault: Lost comms with other Drive-By-Wire throttle module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering fault: Lost comms with other Drive-By-Wire throttle module");
             }
             if (msg.fault_comms_dbw_gear) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering fault: Lost comms with other Drive-By-Wire gear module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering fault: Lost comms with other Drive-By-Wire gear module");
             }
             if (msg.fault_comms_vehicle) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering fault: Lost comms with vehicle module(s)");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering fault: Lost comms with vehicle module(s)");
             }
             if (msg.fault_comms_actuator) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering fault: Lost comms with actuator");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering fault: Lost comms with actuator");
             }
             if (msg.fault_vehicle_speed) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering fault: Vehicle speed");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering fault: Vehicle speed");
             }
             if (msg.fault_actuator_torque_sensor) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering fault: Unknown steering column torque");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering fault: Unknown steering column torque");
             }
             if (msg.fault_actuator_config) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Steering fault: Unsupported actuator configuration"
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering fault: Unsupported actuator configuration"
                                    ", Contact support@dataspeedinc.com if not resolved in a few minutes");
             }
             if (msg.fault_calibration) {
@@ -1224,7 +1236,7 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
                       "time to set the center offset when the wheel is straight. For a more exact "
                       "calibration set the SteeringCal and SteeringCal offset parameters using DbwConfig.";
               }
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "%s", txt);
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "%s", txt);
             }
           } else {
             RCLCPP_WARN(get_logger(), "Ignoring steer report 3 with invalid CRC");
@@ -1240,103 +1252,103 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
           const auto &msg = msg_brake_rpt_3_;
           if (msg.validCrc()) {
             if (msg.degraded_comms_dbw) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake degraded: Lost comms with other Drive-By-Wire module(s)");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake degraded: Lost comms with other Drive-By-Wire module(s)");
             }
             if (msg.degraded_comms_dbw_gateway) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake degraded: Lost comms with other Drive-By-Wire gateway module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake degraded: Lost comms with other Drive-By-Wire gateway module");
             }
             if (msg.degraded_comms_dbw_steer) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake degraded: Lost comms with other Drive-By-Wire steer module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake degraded: Lost comms with other Drive-By-Wire steer module");
             }
             if (msg.degraded_comms_dbw_thrtl) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake degraded: Lost comms with other Drive-By-Wire throttle module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake degraded: Lost comms with other Drive-By-Wire throttle module");
             }
             if (msg.degraded_comms_dbw_gear) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake degraded: Lost comms with other Drive-By-Wire gear module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake degraded: Lost comms with other Drive-By-Wire gear module");
             }
             if (msg.degraded_control_performance) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake degraded: Control performance");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake degraded: Control performance");
             }
             if (msg.degraded_param_mismatch) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake degraded: System parameter mismatch with other Drive-By-Wire modules");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake degraded: System parameter mismatch with other Drive-By-Wire modules");
             }
             if (msg.degraded_comms_vehicle) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake degraded: Lost comms with vehicle module(s)");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake degraded: Lost comms with vehicle module(s)");
             }
             if (msg.degraded_comms_actuator) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake degraded: Lost comms with actuator");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake degraded: Lost comms with actuator");
             }
             if (msg.degraded_comms_actuator_1) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake degraded: Lost comms with actuator 1");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake degraded: Lost comms with actuator 1");
             }
             if (msg.degraded_comms_actuator_2) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake degraded: Lost comms with actuator 2");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake degraded: Lost comms with actuator 2");
             }
             if (msg.degraded_vehicle_speed) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake degraded: Vehicle speed");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake degraded: Vehicle speed");
             }
             if (msg.degraded_btsi_stuck_low) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake degraded: BTSI stuck low");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake degraded: BTSI stuck low");
             }
             if (msg.degraded_btsi_stuck_high) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake degraded: BTSI stuck high");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake degraded: BTSI stuck high");
             }
             if (msg.degraded_actuator_aeb_deny) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake degraded: AEB deny from actuator");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake degraded: AEB deny from actuator");
             }
             if (msg.degraded_actuator_1) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake degraded: Actuator 1");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake degraded: Actuator 1");
             }
             if (msg.degraded_actuator_2) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake degraded: Actuator 2");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake degraded: Actuator 2");
             }
             if (msg.degraded_calibration) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake degraded: Calibration");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake degraded: Calibration");
             }
             if (msg.fault_comms_dbw) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake fault: Lost comms with other Drive-By-Wire module(s)");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake fault: Lost comms with other Drive-By-Wire module(s)");
             }
             if (msg.fault_comms_dbw_gateway) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake fault: Lost comms with other Drive-By-Wire gateway module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake fault: Lost comms with other Drive-By-Wire gateway module");
             }
             if (msg.fault_comms_dbw_steer) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake fault: Lost comms with other Drive-By-Wire steer module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake fault: Lost comms with other Drive-By-Wire steer module");
             }
             if (msg.fault_comms_dbw_thrtl) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake fault: Lost comms with other Drive-By-Wire throttle module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake fault: Lost comms with other Drive-By-Wire throttle module");
             }
             if (msg.fault_comms_dbw_gear) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake fault: Lost comms with other Drive-By-Wire gear module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake fault: Lost comms with other Drive-By-Wire gear module");
             }
             if (msg.fault_comms_vehicle) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake fault: Lost comms with vehicle module(s)");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake fault: Lost comms with vehicle module(s)");
             }
             if (msg.fault_comms_actuator) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake fault: Lost comms with actuator");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake fault: Lost comms with actuator");
             }
             if (msg.fault_comms_actuator_1) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake fault: Lost comms with actuator 1");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake fault: Lost comms with actuator 1");
             }
             if (msg.fault_comms_actuator_2) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake fault: Lost comms with actuator 2");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake fault: Lost comms with actuator 2");
             }
             if (msg.fault_vehicle_speed) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake fault: Vehicle speed");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake fault: Vehicle speed");
             }
             if (msg.fault_actuator_acc_deny) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake fault: ACC deny from actuator");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake fault: ACC deny from actuator");
             }
             if (msg.fault_actuator_pedal_torque) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake fault: Unknown pedal torque from actuator");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake fault: Unknown pedal torque from actuator");
             }
             if (msg.fault_actuator_1) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake fault: Fault in actuator 1");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake fault: Fault in actuator 1");
             }
             if (msg.fault_actuator_2) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake fault: Fault in actuator 2");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake fault: Fault in actuator 2");
             }
             if (msg.fault_calibration) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Brake fault: Calibration");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake fault: Calibration");
             }
           } else {
             RCLCPP_WARN(get_logger(), "Ignoring brake report 3 with invalid CRC");
@@ -1352,64 +1364,64 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
           const auto &msg = msg_thrtl_rpt_3_;
           if (msg.validCrc()) {
             if (msg.degraded_comms_dbw) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle degraded: Lost comms with other Drive-By-Wire module(s)");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle degraded: Lost comms with other Drive-By-Wire module(s)");
             }
             if (msg.degraded_comms_dbw_gateway) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle degraded: Lost comms with other Drive-By-Wire gateway module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle degraded: Lost comms with other Drive-By-Wire gateway module");
             }
             if (msg.degraded_comms_dbw_steer) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle degraded: Lost comms with other Drive-By-Wire steer module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle degraded: Lost comms with other Drive-By-Wire steer module");
             }
             if (msg.degraded_comms_dbw_brake) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle degraded: Lost comms with other Drive-By-Wire brake module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle degraded: Lost comms with other Drive-By-Wire brake module");
             }
             if (msg.degraded_comms_dbw_gear) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle degraded: Lost comms with other Drive-By-Wire gear module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle degraded: Lost comms with other Drive-By-Wire gear module");
             }
             if (msg.degraded_control_performance) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle degraded: Control performance");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle degraded: Control performance");
             }
             if (msg.degraded_param_mismatch) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle degraded: System parameter mismatch with other Drive-By-Wire modules");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle degraded: System parameter mismatch with other Drive-By-Wire modules");
             }
             if (msg.degraded_vehicle_speed) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle degraded: Unknown or invalid vehicle speed");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle degraded: Unknown or invalid vehicle speed");
             }
             if (msg.degraded_aped_feedback) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle degraded: Lost accelerator pedal position feedback");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle degraded: Lost accelerator pedal position feedback");
             }
             if (msg.degraded_calibration) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle degraded: Calibration");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle degraded: Calibration");
             }
             if (msg.fault_comms_dbw) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle fault: Lost comms with other Drive-By-Wire module(s)");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle fault: Lost comms with other Drive-By-Wire module(s)");
             }
             if (msg.fault_comms_dbw_gateway) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle fault: Lost comms with other Drive-By-Wire gateway module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle fault: Lost comms with other Drive-By-Wire gateway module");
             }
             if (msg.fault_comms_dbw_steer) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle fault: Lost comms with other Drive-By-Wire steer module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle fault: Lost comms with other Drive-By-Wire steer module");
             }
             if (msg.fault_comms_dbw_brake) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle fault: Lost comms with other Drive-By-Wire brake module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle fault: Lost comms with other Drive-By-Wire brake module");
             }
             if (msg.fault_comms_dbw_gear) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle fault: Lost comms with other Drive-By-Wire gear module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle fault: Lost comms with other Drive-By-Wire gear module");
             }
             if (msg.fault_vehicle_speed) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle fault: Unknown or invalid vehicle speed");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle fault: Unknown or invalid vehicle speed");
             }
             if (msg.fault_aped_sensor_1) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle fault: Accelerator pedal position sensor channel 1 out of range");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle fault: Accelerator pedal position sensor channel 1 out of range");
             }
             if (msg.fault_aped_sensor_2) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle fault: Accelerator pedal position sensor channel 2 out of range");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle fault: Accelerator pedal position sensor channel 2 out of range");
             }
             if (msg.fault_aped_sensor_mismatch) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle fault: Accelerator pedal position sensor dual channel mismatch");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle fault: Accelerator pedal position sensor dual channel mismatch");
             }
             if (msg.fault_calibration) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Throttle fault: Calibration");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle fault: Calibration");
             }
           } else {
             RCLCPP_WARN(get_logger(), "Ignoring throttle report 3 with invalid CRC");
@@ -1425,95 +1437,95 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
           const auto &msg = msg_gear_rpt_3_;
           if (msg.validCrc()) {
             if (msg.degraded_comms_dbw) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear degraded: Lost comms with other Drive-By-Wire module(s)");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear degraded: Lost comms with other Drive-By-Wire module(s)");
             }
             if (msg.degraded_comms_dbw_gateway) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear degraded: Lost comms with other Drive-By-Wire gateway module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear degraded: Lost comms with other Drive-By-Wire gateway module");
             }
             if (msg.degraded_comms_dbw_steer) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear degraded: Lost comms with other Drive-By-Wire steer module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear degraded: Lost comms with other Drive-By-Wire steer module");
             }
             if (msg.degraded_comms_dbw_brake) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear degraded: Lost comms with other Drive-By-Wire brake module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear degraded: Lost comms with other Drive-By-Wire brake module");
             }
             if (msg.degraded_comms_dbw_thrtl) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear degraded: Lost comms with other Drive-By-Wire throttle module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear degraded: Lost comms with other Drive-By-Wire throttle module");
             }
             if (msg.degraded_control_performance) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear degraded: Control performance");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear degraded: Control performance");
             }
             if (msg.degraded_param_mismatch) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear degraded: System parameter mismatch with other Drive-By-Wire modules");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear degraded: System parameter mismatch with other Drive-By-Wire modules");
             }
             if (msg.degraded_comms_vehicle) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear degraded: Lost comms with vehicle module(s)");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear degraded: Lost comms with vehicle module(s)");
             }
             if (msg.degraded_comms_vehicle_1) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear degraded: Lost primary comms with vehicle module(s)");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear degraded: Lost primary comms with vehicle module(s)");
             }
             if (msg.degraded_comms_vehicle_2) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear degraded: Lost secondary comms with vehicle module(s)");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear degraded: Lost secondary comms with vehicle module(s)");
             }
             if (msg.degraded_comms_actuator) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear degraded: Lost comms with actuator");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear degraded: Lost comms with actuator");
             }
             if (msg.degraded_comms_actuator_1) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear degraded: Lost primary comms with actuator");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear degraded: Lost primary comms with actuator");
             }
             if (msg.degraded_comms_actuator_2) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear degraded: Lost secondary comms with actuator");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear degraded: Lost secondary comms with actuator");
             }
             if (msg.degraded_vehicle_speed) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear degraded: Unknown or invalid vehicle speed");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear degraded: Unknown or invalid vehicle speed");
             }
             if (msg.degraded_gear_mismatch) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear degraded: Sustained gear state mismatch between primary and secondary signals");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear degraded: Sustained gear state mismatch between primary and secondary signals");
             }
             if (msg.degraded_power) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear degraded: Secondary power source unavailable");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear degraded: Secondary power source unavailable");
             }
             if (msg.degraded_calibration) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear degraded: Calibration");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear degraded: Calibration");
             }
 
             if (msg.fault_comms_dbw) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear fault: Lost comms with other Drive-By-Wire module(s)");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear fault: Lost comms with other Drive-By-Wire module(s)");
             }
             if (msg.fault_comms_dbw_gateway) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear fault: Lost comms with other Drive-By-Wire gateway module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear fault: Lost comms with other Drive-By-Wire gateway module");
             }
             if (msg.fault_comms_dbw_steer) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear fault: Lost comms with other Drive-By-Wire steer module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear fault: Lost comms with other Drive-By-Wire steer module");
             }
             if (msg.fault_comms_dbw_brake) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear fault: Lost comms with other Drive-By-Wire brake module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear fault: Lost comms with other Drive-By-Wire brake module");
             }
             if (msg.fault_comms_dbw_thrtl) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear fault: Lost comms with other Drive-By-Wire throttle module");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear fault: Lost comms with other Drive-By-Wire throttle module");
             }
             if (msg.fault_comms_vehicle) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear fault: Lost comms with vehicle module(s)");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear fault: Lost comms with vehicle module(s)");
             }
             if (msg.fault_comms_vehicle_1) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear fault: Lost primary comms with vehicle module(s)");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear fault: Lost primary comms with vehicle module(s)");
             }
             if (msg.fault_comms_vehicle_2) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear fault: Lost secondary comms with vehicle module(s)");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear fault: Lost secondary comms with vehicle module(s)");
             }
             if (msg.fault_comms_actuator) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear fault: Lost comms with actuator");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear fault: Lost comms with actuator");
             }
             if (msg.fault_comms_actuator_1) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear fault: Lost primary comms with actuator");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear fault: Lost primary comms with actuator");
             }
             if (msg.fault_comms_actuator_2) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear fault: Lost secondary comms with actuator");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear fault: Lost secondary comms with actuator");
             }
             if (msg.fault_vehicle_speed) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear fault: Unknown or invalid vehicle speed");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear fault: Unknown or invalid vehicle speed");
             }
             if (msg.fault_calibration) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5e3, "Gear fault: Calibration");
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Gear fault: Calibration");
             }
           } else {
             RCLCPP_WARN(get_logger(), "Ignoring gear report 3 with invalid CRC");
@@ -2144,12 +2156,16 @@ void DbwNode::recvUlcCmd(const ds_dbw_msgs::msg::UlcCmd::ConstSharedPtr msg) {
   }
 }
 
-void DbwNode::recvCalibrateSteering(const std_msgs::msg::Empty::ConstSharedPtr) {
+void DbwNode::recvSteeringCalibrate(const std_msgs::msg::Empty::ConstSharedPtr) {
   /* Send steering command to save current angle as zero.
    * The preferred method is to set the 'calibrate' field in a ROS steering
    * command so that recvSteeringCmd() saves the current angle as the
    * specified command.
    */
+  RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1e3,
+      "The std_msgs/Empty steering calibration topic is deprecated. "
+      "Instead, send a steering command with cmd_type=CMD_CALIBRATE and specify the angle"
+  );
   msg_steer_cmd_.reset();
   msg_steer_cmd_.cmd_type = MsgSteerCmd::CmdType::Calibrate;
   msg_steer_cmd_.setCmdAngleRad(0);
