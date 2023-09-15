@@ -50,7 +50,7 @@ sudo rosdep init
 
 # Update rosdep rules
 echo "Updating rosdep rules..."
-rosdep update
+rosdep update --rosdistro=$ROS_DISTRO
 
 # Setup environment
 echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc
@@ -59,11 +59,11 @@ echo "export ROS_LOCALHOST_ONLY=1" >> ~/.bashrc
 
 # Install SDK
 echo "Installing SDK..."
-bash <(wget -q -O - https://bitbucket.org/DataspeedInc/dbw_ros/raw/ros2/dbw_ford/scripts/sdk_install.bash)
+bash <(wget -q -O - https://bitbucket.org/DataspeedInc/dbw_ros/raw/dbw2/ds_dbw/scripts/sdk_install.bash)
 
 # Configure startup script
 mkdir -p $HOME/.config/autostart
-wget -q https://bitbucket.org/DataspeedInc/dbw_ros/raw/ros2/dbw_ford/scripts/joystick_demo.desktop -O $HOME/.config/autostart/joystick_demo.desktop
+wget -q https://bitbucket.org/DataspeedInc/dbw_ros/raw/dbw2/ds_dbw/scripts/joystick_demo.desktop -O $HOME/.config/autostart/joystick_demo.desktop
 
 ### Misc fixes ###
 # Fix launcher icons
@@ -79,4 +79,3 @@ echo "Configuring launch files to open in gedit..."
 xdg-mime default gedit.desktop application/xml
 
 echo "ROS install: Done"
-

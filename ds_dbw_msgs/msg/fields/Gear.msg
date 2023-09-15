@@ -1,4 +1,4 @@
-uint8 gear
+uint8 value
 
 uint8 NONE=0
 uint8 PARK=1

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(dbw_ford_joystick_demo)
+project(ds_dbw_joystick_demo)
 
 # Default to C++17
 if(NOT CMAKE_CXX_STANDARD)
@@ -13,10 +13,9 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
-find_package(dataspeed_dbw_common REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
-find_package(dbw_ford_msgs REQUIRED)
+find_package(ds_dbw_msgs REQUIRED)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   message(STATUS "Enabling coverage testing")
@@ -30,10 +29,9 @@ add_library(${PROJECT_NAME} SHARED
 ament_target_dependencies(${PROJECT_NAME}
   "rclcpp_components"
   "rclcpp"
-  "dataspeed_dbw_common"
   "std_msgs"
   "sensor_msgs"
-  "dbw_ford_msgs"
+  "ds_dbw_msgs"
 )
 
 install(TARGETS ${PROJECT_NAME}

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(dbw_ford_can)
+project(ds_dbw_can)
 
 # Default to C++17
 if(NOT CMAKE_CXX_STANDARD)
@@ -13,12 +13,10 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
-find_package(dataspeed_dbw_common REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(can_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
-find_package(geometry_msgs REQUIRED)
-find_package(dbw_ford_msgs REQUIRED)
+find_package(ds_dbw_msgs REQUIRED)
 find_package(dataspeed_can_msg_filters REQUIRED)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -33,12 +31,10 @@ add_library(${PROJECT_NAME} SHARED
 ament_target_dependencies(${PROJECT_NAME}
   "rclcpp_components"
   "rclcpp"
-  "dataspeed_dbw_common"
   "std_msgs"
   "can_msgs"
   "sensor_msgs"
-  "geometry_msgs"
-  "dbw_ford_msgs"
+  "ds_dbw_msgs"
   "dataspeed_can_msg_filters"
 )
 
@@ -75,13 +71,14 @@ install(DIRECTORY launch
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
-  
-  ament_add_gtest(${PROJECT_NAME}_test_pedal_lut "tests/test_pedal_lut.cpp")
-  target_include_directories(${PROJECT_NAME}_test_pedal_lut PUBLIC "include")
+  ament_add_gtest(${PROJECT_NAME}_test_module_version "tests/test_module_version.cpp")
+  target_include_directories(${PROJECT_NAME}_test_module_version PUBLIC "include")
 
-  ament_add_gtest(${PROJECT_NAME}_test_sonar_lut "tests/test_sonar_lut.cpp")
-  target_include_directories(${PROJECT_NAME}_test_sonar_lut PUBLIC "include")
-  ament_target_dependencies(${PROJECT_NAME}_test_sonar_lut "sensor_msgs" "dbw_ford_msgs")
+  ament_add_gtest(${PROJECT_NAME}_test_platform_map "tests/test_platform_map.cpp")
+  target_include_directories(${PROJECT_NAME}_test_platform_map PUBLIC "include")
+
+  ament_add_gtest(${PROJECT_NAME}_test_platform_version "tests/test_platform_version.cpp")
+  target_include_directories(${PROJECT_NAME}_test_platform_version PUBLIC "include")
 endif()
 
 ament_package()

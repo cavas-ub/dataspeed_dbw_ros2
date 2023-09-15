@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(dbw_ford_msgs)
+project(ds_dbw_msgs)
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
@@ -8,45 +8,34 @@ find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/AmbientLight.msg"
+  "msg/fields/CmdSrc.msg"
+  "msg/fields/Gear.msg"
+  "msg/fields/GearReject.msg"
+  "msg/fields/OnePedal.msg"
+  "msg/fields/Quality.msg"
+  "msg/fields/TurnSignal.msg"
   "msg/BrakeCmd.msg"
-  "msg/BrakeInfoReport.msg"
+  "msg/BrakeInfo.msg"
   "msg/BrakeReport.msg"
-  "msg/DriverAssistReport.msg"
-  "msg/FuelLevelReport.msg"
+  "msg/EcuInfo.msg"
   "msg/GearCmd.msg"
-  "msg/Gear.msg"
-  "msg/GearNum.msg"
-  "msg/GearReject.msg"
   "msg/GearReport.msg"
-  "msg/HillStartAssist.msg"
-  "msg/Ignition.msg"
   "msg/MiscCmd.msg"
-  "msg/Misc1Report.msg"
-  "msg/OnePedal.msg"
-  "msg/ParkingBrake.msg"
-  "msg/ParkingBrakeCmd.msg"
-  "msg/QualityFactor.msg"
+  "msg/MiscReport.msg"
   "msg/SteeringCmd.msg"
   "msg/SteeringReport.msg"
-  "msg/SurroundReport.msg"
   "msg/ThrottleCmd.msg"
-  "msg/ThrottleInfoReport.msg"
+  "msg/ThrottleInfo.msg"
   "msg/ThrottleReport.msg"
-  "msg/TirePressureReport.msg"
-  "msg/TurnSignal.msg"
-  "msg/TwistCmd.msg"
-  "msg/WatchdogCounter.msg"
-  "msg/WheelPositionReport.msg"
-  "msg/WheelSpeedReport.msg"
-  "msg/Wiper.msg"
+  "msg/TirePressures.msg"
+  "msg/UlcCmd.msg"
+  "msg/UlcReport.msg"
+  "msg/VehicleVelocity.msg"
+  "msg/WheelPositions.msg"
+  "msg/WheelSpeeds.msg"
   DEPENDENCIES
   "std_msgs"
   "geometry_msgs"
 )
-
-install(
-  FILES "mapping_rules.yaml"
-  DESTINATION share/${PROJECT_NAME})
 
 ament_package()

@@ -35,9 +35,9 @@
 #pragma once
 
 // Module Version class
-#include <dataspeed_dbw_common/ModuleVersion.hpp>
+#include <ds_dbw_can/ModuleVersion.hpp>
 
-namespace dataspeed_dbw_common {
+namespace ds_dbw_can {
 
 // Vehicle platform enumeration
 typedef enum {
@@ -126,4 +126,4 @@ static constexpr bool operator>=(const PlatformVersion& x, const ModuleVersion& 
 static constexpr bool operator==(const PlatformVersion& x, const ModuleVersion& y) { return x.v == y; }
 static constexpr bool operator!=(const PlatformVersion& x, const ModuleVersion& y) { return x.v != y; }
 
-} // namespace dbw_ford_can
+} // namespace ds_dbw_can

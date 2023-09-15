@@ -1,22 +1,21 @@
 std_msgs/Header header
 
-# Throttle pedal
-# Options defined below
-float32 pedal_cmd
-uint8 pedal_cmd_type
+# Brake command
+float32 cmd      # Command, changes with cmd_type
+float32 rate_inc # Rate limit for command increase, 0 for default, INFINITY for no limit, changes with cmd_type
+float32 rate_dec # Rate limit for command decrease, 0 for default, INFINITY for no limit, changes with cmd_type
+uint8 cmd_type
 
 # Enable
 bool enable
 
-# Clear driver overrides
+# Clear latched overrides
 bool clear
 
-# Ignore driver overrides
+# Ignore future overrides
 bool ignore
 
-# Watchdog counter (optional)
-uint8 count
-
-uint8 CMD_NONE=0
-uint8 CMD_PEDAL=1   # Unitless, range 0.15 to 0.80
-uint8 CMD_PERCENT=2 # Percent of maximum throttle, range 0 to 1
+# Command types
+uint8 CMD_NONE=0        # Command  Rate-limit  Range     Note
+uint8 CMD_PEDAL_RAW=13  # %        %/s         0 to 100  Raw pedal sensor units
+uint8 CMD_PERCENT=14    # %        %/s         0 to 100  Percent

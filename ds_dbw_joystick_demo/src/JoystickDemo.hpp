@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2015-2021, Dataspeed Inc.
+ *  Copyright (c) 2020-2021, Dataspeed Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -37,25 +37,13 @@
 #include <sensor_msgs/msg/joy.hpp>
 #include <std_msgs/msg/empty.hpp>
 
-#include <dbw_ford_msgs/msg/brake_cmd.hpp>
-#include <dbw_ford_msgs/msg/gear_cmd.hpp>
-#include <dbw_ford_msgs/msg/steering_cmd.hpp>
-#include <dbw_ford_msgs/msg/throttle_cmd.hpp>
-#include <dbw_ford_msgs/msg/misc_cmd.hpp>
+#include <ds_dbw_msgs/msg/brake_cmd.hpp>
+#include <ds_dbw_msgs/msg/gear_cmd.hpp>
+#include <ds_dbw_msgs/msg/steering_cmd.hpp>
+#include <ds_dbw_msgs/msg/throttle_cmd.hpp>
+#include <ds_dbw_msgs/msg/misc_cmd.hpp>
 
-namespace dbw_ford_joystick_demo {
-
-typedef struct {
-  rclcpp::Time stamp;
-  float brake_joy;
-  float throttle_joy;
-  float steering_joy;
-  bool steering_mult;
-  int gear_cmd;
-  int turn_signal_cmd;
-  bool joy_throttle_valid;
-  bool joy_brake_valid;
-} JoystickDataStruct;
+namespace ds_dbw_joystick_demo {
 
 class JoystickDemo : public rclcpp::Node {
 public:
@@ -67,38 +55,50 @@ private:
 
   // Topics
   rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr sub_joy_;
-  rclcpp::Publisher<dbw_ford_msgs::msg::BrakeCmd>::SharedPtr pub_brake_;
-  rclcpp::Publisher<dbw_ford_msgs::msg::ThrottleCmd>::SharedPtr pub_throttle_;
-  rclcpp::Publisher<dbw_ford_msgs::msg::SteeringCmd>::SharedPtr pub_steering_;
-  rclcpp::Publisher<dbw_ford_msgs::msg::GearCmd>::SharedPtr pub_gear_;
-  rclcpp::Publisher<dbw_ford_msgs::msg::MiscCmd>::SharedPtr pub_misc_;
+  rclcpp::Publisher<ds_dbw_msgs::msg::BrakeCmd>::SharedPtr pub_brake_;
+  rclcpp::Publisher<ds_dbw_msgs::msg::ThrottleCmd>::SharedPtr pub_throttle_;
+  rclcpp::Publisher<ds_dbw_msgs::msg::SteeringCmd>::SharedPtr pub_steering_;
+  rclcpp::Publisher<ds_dbw_msgs::msg::GearCmd>::SharedPtr pub_gear_;
+  rclcpp::Publisher<ds_dbw_msgs::msg::MiscCmd>::SharedPtr pub_misc_;
   rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr pub_enable_;
   rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr pub_disable_;
 
   // Parameters
-  bool brake_;     // Send brake commands
-  bool throttle_;  // Send throttle commands
-  bool steer_;     // Send steering commands
-  bool shift_;     // Send shift commands
-  bool signal_;    // Send turn signal commands
+  bool brake_ = true;    // Send brake commands
+  bool throttle_ = true; // Send throttle commands
+  bool steer_ = true;    // Send steering commands
+  bool shift_ = true;    // Send shift commands
+  bool misc_ = true;     // Send misc commands
 
   // Parameters
-  float brake_gain_;     // Adjust brake value
-  float throttle_gain_;  // Adjust throttle value
+  float brake_gain_ = 1;    // Adjust brake value
+  float throttle_gain_ = 1; // Adjust throttle value
 
   // Parameters
-  bool ignore_;  // Ignore driver overrides
-  bool enable_;  // Use enable and disable buttons
-  bool count_;   // Increment counter to enable watchdog
-  bool strq_;    // Steering torque command (otherwise angle)
-  float svel_;   // Steering command speed
+  bool ignore_ = false; // Ignore driver overrides
+  bool enable_ = true;  // Use enable and disable buttons
+  bool strq_ = false;   // Steering torque command (otherwise angle)
+  float svel_ = 0;      // Steering velocity limit (deg/s)
+  float sacl_ = 0;      // Steering acceleration limit (deg/s^2)
 
   // Variables
+  struct JoystickDataStruct {
+    rclcpp::Time stamp;
+    float brake_joy = 0;
+    float throttle_joy = 0;
+    float steering_joy = 0;
+    uint8_t gear_cmd = 0;
+    uint8_t turn_signal_cmd = 0;
+    uint8_t door_select = 0;
+    uint8_t door_action = 0;
+    bool steering_mult = false;
+    bool steering_cal = false;
+    bool joy_throttle_valid = false;
+    bool joy_brake_valid = false;
+  } data_;
   rclcpp::TimerBase::SharedPtr timer_;
-  JoystickDataStruct data_;
   sensor_msgs::msg::Joy joy_;
-  uint8_t counter_ = 0;
-  float last_steering_filt_output_;
+  float last_steering_filt_output_ = 0;
 
   enum {
     BTN_PARK = 3,
@@ -109,6 +109,8 @@ private:
     BTN_DISABLE = 4,
     BTN_STEER_MULT_1 = 6,
     BTN_STEER_MULT_2 = 7,
+    BTN_TRUNK_OPEN = 9,
+    BTN_TRUNK_CLOSE = 10,
     BTN_COUNT_X = 11,
     BTN_COUNT_D = 12,
     AXIS_THROTTLE = 5,
@@ -116,9 +118,11 @@ private:
     AXIS_STEER_1 = 0,
     AXIS_STEER_2 = 3,
     AXIS_TURN_SIG = 6,
+    AXIS_DOOR_SELECT = 6,
+    AXIS_DOOR_ACTION = 7,
     AXIS_COUNT_D = 6,
     AXIS_COUNT_X = 8,
   };
 };
 
-} // namespace dbw_ford_joystick_demo
+} // namespace ds_dbw_joystick_demo

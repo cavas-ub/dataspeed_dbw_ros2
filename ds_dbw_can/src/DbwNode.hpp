@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2015-2021, Dataspeed Inc.
+ *  Copyright (c) 2020-2021, Dataspeed Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -35,43 +35,42 @@
 
 #include <rclcpp/rclcpp.hpp>
 
-// Messages
+// ROS messages
 #include <can_msgs/msg/frame.hpp>
 #include <dataspeed_can_msg_filters/ApproximateTime.hpp>
-#include <dbw_ford_msgs/msg/brake_cmd.hpp>
-#include <dbw_ford_msgs/msg/brake_info_report.hpp>
-#include <dbw_ford_msgs/msg/brake_report.hpp>
-#include <dbw_ford_msgs/msg/driver_assist_report.hpp>
-#include <dbw_ford_msgs/msg/fuel_level_report.hpp>
-#include <dbw_ford_msgs/msg/gear_cmd.hpp>
-#include <dbw_ford_msgs/msg/gear_report.hpp>
-#include <dbw_ford_msgs/msg/misc_cmd.hpp>
-#include <dbw_ford_msgs/msg/misc1_report.hpp>
-#include <dbw_ford_msgs/msg/steering_cmd.hpp>
-#include <dbw_ford_msgs/msg/steering_report.hpp>
-#include <dbw_ford_msgs/msg/surround_report.hpp>
-#include <dbw_ford_msgs/msg/throttle_cmd.hpp>
-#include <dbw_ford_msgs/msg/throttle_info_report.hpp>
-#include <dbw_ford_msgs/msg/throttle_report.hpp>
-#include <dbw_ford_msgs/msg/tire_pressure_report.hpp>
-#include <dbw_ford_msgs/msg/wheel_position_report.hpp>
-#include <dbw_ford_msgs/msg/wheel_speed_report.hpp>
-#include <geometry_msgs/msg/twist_stamped.hpp>
+#include <ds_dbw_msgs/msg/steering_cmd.hpp>
+#include <ds_dbw_msgs/msg/steering_report.hpp>
+#include <ds_dbw_msgs/msg/brake_cmd.hpp>
+#include <ds_dbw_msgs/msg/brake_report.hpp>
+#include <ds_dbw_msgs/msg/throttle_cmd.hpp>
+#include <ds_dbw_msgs/msg/throttle_report.hpp>
+#include <ds_dbw_msgs/msg/gear_cmd.hpp>
+#include <ds_dbw_msgs/msg/gear_report.hpp>
+#include <ds_dbw_msgs/msg/vehicle_velocity.hpp>
+#include <ds_dbw_msgs/msg/throttle_info.hpp>
+#include <ds_dbw_msgs/msg/brake_info.hpp>
+#include <ds_dbw_msgs/msg/ulc_cmd.hpp>
+#include <ds_dbw_msgs/msg/ulc_report.hpp>
+#include <ds_dbw_msgs/msg/wheel_speeds.hpp>
+#include <ds_dbw_msgs/msg/wheel_positions.hpp>
+#include <ds_dbw_msgs/msg/misc_cmd.hpp>
+#include <ds_dbw_msgs/msg/misc_report.hpp>
+#include <ds_dbw_msgs/msg/tire_pressures.hpp>
+#include <ds_dbw_msgs/msg/ecu_info.hpp>
 #include <sensor_msgs/msg/imu.hpp>
-#include <sensor_msgs/msg/joint_state.hpp>
-#include <sensor_msgs/msg/nav_sat_fix.hpp>
-#include <sensor_msgs/msg/point_cloud2.hpp>
-#include <sensor_msgs/msg/time_reference.hpp>
 #include <std_msgs/msg/empty.hpp>
 
 // The following messages are deprecated
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/string.hpp>
 
-// Platform and module version map
-#include <dataspeed_dbw_common/PlatformMap.hpp>
+// CAN messages
+#include <ds_dbw_can/dispatch.hpp>
 
-namespace dbw_ford_can {
+// Platform and module version map
+#include <ds_dbw_can/PlatformMap.hpp>
+
+namespace ds_dbw_can {
 
 class DbwNode : public rclcpp::Node {
 public:
@@ -81,44 +80,87 @@ private:
   void timerCallback();
   void recvEnable(const std_msgs::msg::Empty::ConstSharedPtr);
   void recvDisable(const std_msgs::msg::Empty::ConstSharedPtr);
-  void recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg);
-  void recvCanImu(const std::vector<can_msgs::msg::Frame::ConstSharedPtr> &msgs);
-  void recvCanGps(const std::vector<can_msgs::msg::Frame::ConstSharedPtr> &msgs);
-  void recvBrakeCmd(const dbw_ford_msgs::msg::BrakeCmd::ConstSharedPtr msg);
-  void recvThrottleCmd(const dbw_ford_msgs::msg::ThrottleCmd::ConstSharedPtr msg);
-  void recvSteeringCmd(const dbw_ford_msgs::msg::SteeringCmd::ConstSharedPtr msg);
-  void recvGearCmd(const dbw_ford_msgs::msg::GearCmd::ConstSharedPtr msg);
-  void recvMiscCmd(const dbw_ford_msgs::msg::MiscCmd::ConstSharedPtr msg);
+  void recvCAN(const can_msgs::msg::Frame::ConstSharedPtr);
+  void recvCanImu(const std::vector<can_msgs::msg::Frame::ConstSharedPtr>& msgs);
+  void recvCanMisc(const std::vector<can_msgs::msg::Frame::ConstSharedPtr>& msgs);
+  void recvSteeringCmd(const ds_dbw_msgs::msg::SteeringCmd::ConstSharedPtr msg);
+  void recvBrakeCmd(const ds_dbw_msgs::msg::BrakeCmd::ConstSharedPtr msg);
+  void recvThrottleCmd(const ds_dbw_msgs::msg::ThrottleCmd::ConstSharedPtr msg);
+  void recvGearCmd(const ds_dbw_msgs::msg::GearCmd::ConstSharedPtr msg);
+  void recvMiscCmd(const ds_dbw_msgs::msg::MiscCmd::ConstSharedPtr msg);
+  void recvUlcCmd(const ds_dbw_msgs::msg::UlcCmd::ConstSharedPtr msg);
+  void recvCalibrateSteering(const std_msgs::msg::Empty::ConstSharedPtr msg);
+
+  // CAN messages
+  MsgSteerCmdUsr     msg_steer_cmd_;
+  MsgSteerReport1    msg_steer_rpt_1_;
+  MsgSteerReport2    msg_steer_rpt_2_;
+  MsgSteerReport3    msg_steer_rpt_3_;
+  MsgBrakeCmdUsr     msg_brake_cmd_;
+  MsgBrakeReport1    msg_brake_rpt_1_;
+  MsgBrakeReport2    msg_brake_rpt_2_;
+  MsgBrakeReport3    msg_brake_rpt_3_;
+  MsgThrtlCmdUsr     msg_thrtl_cmd_;
+  MsgThrtlReport1    msg_thrtl_rpt_1_;
+  MsgThrtlReport2    msg_thrtl_rpt_2_;
+  MsgThrtlReport3    msg_thrtl_rpt_3_;
+  MsgGearCmdUsr      msg_gear_cmd_;
+  MsgGearReport1     msg_gear_rpt_1_;
+  MsgGearReport2     msg_gear_rpt_2_;
+  MsgGearReport3     msg_gear_rpt_3_;
+  MsgSystemReport    msg_system_rpt_;
+  MsgSystemCmd       msg_system_cmd_;
+  MsgVehicleVelocity msg_veh_vel_;
+  MsgThrtlInfo       msg_thrtl_info_;
+  MsgBrakeInfo       msg_brake_info_;
+  MsgUlcCmd          msg_ulc_cmd_;
+  MsgUlcCfg          msg_ulc_cfg_;
+  MsgUlcReport       msg_ulc_rpt_;
+  MsgAccel           msg_accel_;
+  MsgGyro            msg_gyro_;
+  MsgWheelSpeed      msg_wheel_speed_;
+  MsgWheelPosition   msg_wheel_position_;
+  MsgMiscCmd         msg_misc_cmd_;
+  MsgMiscReport1     msg_misc_rpt_1_;
+  MsgMiscReport2     msg_misc_rpt_2_;
+  MsgTirePressure    msg_tire_pressure_;
+
+  //
+  static constexpr const char * WARN_CMD_TXT = "Another node on the CAN bus is commanding the vehicle!!! Subsystem: %s, Id: 0x%03X";
+
+  // Rate limited commands
+  std_msgs::msg::Header::_stamp_type msg_ulc_cfg_stamp_;
 
   rclcpp::TimerBase::SharedPtr timer_;
-  bool prev_enable_;
-  bool enable_;
-  bool override_brake_;
-  bool override_throttle_;
-  bool override_steering_;
-  bool override_gear_;
-  bool fault_brakes_;
-  bool fault_throttle_;
-  bool fault_steering_;
-  bool fault_steering_cal_;
-  bool fault_watchdog_;
-  bool fault_watchdog_using_brakes_;
-  bool fault_watchdog_warned_;
-  bool timeout_brakes_;
-  bool timeout_throttle_;
-  bool timeout_steering_;
-  bool enabled_brakes_;
-  bool enabled_throttle_;
-  bool enabled_steering_;
-  bool gear_warned_;
+  bool prev_enable_ = true;
+  bool enable_ = false;
   bool fault() const {
-    return fault_brakes_ || fault_throttle_ || fault_steering_ || fault_steering_cal_ || fault_watchdog_;
+    return (msg_steer_rpt_1_.fault && !msg_steer_rpt_1_.timeout)
+        || (msg_brake_rpt_1_.fault && !msg_brake_rpt_1_.timeout)
+        || (msg_thrtl_rpt_1_.fault && !msg_thrtl_rpt_1_.timeout)
+        || (msg_gear_rpt_1_.fault);
+  }
+  bool overrideActive() const {
+    return (msg_steer_rpt_1_.override_active && !msg_steer_rpt_1_.timeout)
+        || (msg_brake_rpt_1_.override_active && !msg_brake_rpt_1_.timeout)
+        || (msg_thrtl_rpt_1_.override_active && !msg_thrtl_rpt_1_.timeout)
+        || (msg_gear_rpt_1_.override_active);
+  }
+  bool overrideOther() const {
+    return (msg_steer_rpt_1_.override_other && !msg_steer_rpt_1_.timeout)
+        || (msg_brake_rpt_1_.override_other && !msg_brake_rpt_1_.timeout)
+        || (msg_thrtl_rpt_1_.override_other && !msg_thrtl_rpt_1_.timeout)
+        || (msg_gear_rpt_1_.override_other);
+  }
+  bool overrideLatched() const {
+    return (msg_steer_rpt_1_.override_latched && !msg_steer_rpt_1_.timeout)
+        || (msg_brake_rpt_1_.override_latched && !msg_brake_rpt_1_.timeout)
+        || (msg_thrtl_rpt_1_.override_latched && !msg_thrtl_rpt_1_.timeout);
   }
   bool override() const {
-    return override_brake_ || override_throttle_ || override_steering_ || override_gear_;
-  }
-  bool clear() const {
-    return enable_ && override();
+    return overrideActive()
+        || overrideOther()
+        || overrideLatched();
   }
   bool enabled() const {
     return enable_ && !fault() && !override();
@@ -127,100 +169,186 @@ private:
   void enableSystem();
   void disableSystem();
   void buttonCancel();
-  void overrideBrake(bool override, bool timeout);
-  void overrideThrottle(bool override, bool timeout);
-  void overrideSteering(bool override, bool timeout);
-  void overrideGear(bool override);
-  void timeoutBrake(bool timeout, bool enabled);
-  void timeoutThrottle(bool timeout, bool enabled);
-  void timeoutSteering(bool timeout, bool enabled);
-  void faultBrakes(bool fault);
-  void faultThrottle(bool fault);
-  void faultSteering(bool fault);
-  void faultSteeringCal(bool fault);
-  void faultWatchdog(bool fault, uint8_t src, bool braking);
-  void faultWatchdog(bool fault, uint8_t src = 0);
 
-  enum {
-    JOINT_FL = 0, // Front left wheel
-    JOINT_FR,     // Front right wheel
-    JOINT_RL,     // Rear left wheel
-    JOINT_RR,     // Rear right wheel
-    JOINT_SL,     // Steering left
-    JOINT_SR,     // Steering right
-    JOINT_COUNT,  // Number of joints
+  uint8_t gear_reject_ = 0;
+  void warnRejectGear(uint8_t reject);
+  void warnBadCrcRc(bool bad_crc, bool bad_rc, const char *name);
+
+  template <typename Cmd, typename Rpt>
+  class WarnTimeout {
+  public:
+    WarnTimeout(const rclcpp::Node &node, const char *name) : node_(node), name_(name) {}
+    void recv(const Rpt &msg) {
+      if (enabled_ && !msg.enabled
+      && !timeout_ &&  msg.timeout) {
+        RCLCPP_WARN(node_.get_logger(), "%s subsystem disabled after %zums command timeout", name_, Cmd::TIMEOUT_MS);
+      }
+      enabled_ = msg.enabled;
+      timeout_ = msg.timeout;
+    }
+  private:
+    const rclcpp::Node &node_;
+    const char * const name_;
+    bool enabled_ = false;
+    bool timeout_ = false;
   };
-  sensor_msgs::msg::JointState joint_state_;
+  WarnTimeout<MsgSteerCmd, MsgSteerReport1> warn_timeout_steer_ = WarnTimeout<MsgSteerCmd, MsgSteerReport1>(*this, "Steering");
+  WarnTimeout<MsgBrakeCmd, MsgBrakeReport1> warn_timeout_brake_ = WarnTimeout<MsgBrakeCmd, MsgBrakeReport1>(*this, "Brake");
+  WarnTimeout<MsgThrtlCmd, MsgThrtlReport1> warn_timeout_thrtl_ = WarnTimeout<MsgThrtlCmd, MsgThrtlReport1>(*this, "Throttle");
 
-  void publishJointStates(const rclcpp::Time& stamp, const dbw_ford_msgs::msg::WheelSpeedReport* wheels,
-                          const dbw_ford_msgs::msg::SteeringReport* steering);
+#if 0
+  template <typename T>
+  class Recv {
+  public:
+    using Stamp = std_msgs::msg::Header::_stamp_type;
+    bool valid() const {
+      // Calculate difference
+      int64_t diff_ns = (rclcpp::Time(stamp) - rclcpp::Time(stamp_)).nanoseconds();
+      return diff_ns > TIMEOUT_NS;
+    }
+  private:
+    static constexpr int64_t TIMEOUT_NS = T::TIMEOUT_MS * 1000000;
+    Stamp stamp_;
+  };
+  Recv<MsgBrakeReport1>    asdf_;
+  #endif
 
-  // Licensing
+  // Rolling counter validation for received messages
+  template <typename T>
+  class RollingCounterValidation {
+  public:
+    using Stamp = std_msgs::msg::Header::_stamp_type;
+    bool valid(const T& msg, Stamp stamp) {
+      // Calculate difference
+      int64_t diff_ns = (rclcpp::Time(stamp) - rclcpp::Time(stamp_)).nanoseconds();
+      bool valid_rc = msg.validRc(rc_);
+      // Save inputs for next time
+      rc_ = msg.rc;
+      stamp_ = stamp;
+      // Valid if rolling counter is valid or enough time has passed to accept any value
+      return valid_rc || (diff_ns > TIMEOUT_NS);
+    }
+  private:
+    static constexpr int64_t TIMEOUT_NS = T::TIMEOUT_MS * 1000000;
+    uint8_t rc_ = 0;
+    Stamp stamp_;
+  };
+  RollingCounterValidation<MsgSteerReport1>    msg_steer_rpt_1_rc_;
+  RollingCounterValidation<MsgSteerReport2>    msg_steer_rpt_2_rc_;
+  RollingCounterValidation<MsgBrakeReport1>    msg_brake_rpt_1_rc_;
+  RollingCounterValidation<MsgBrakeReport2>    msg_brake_rpt_2_rc_;
+  RollingCounterValidation<MsgThrtlReport1>    msg_thrtl_rpt_1_rc_;
+  RollingCounterValidation<MsgThrtlReport2>    msg_thrtl_rpt_2_rc_;
+  RollingCounterValidation<MsgGearReport1>     msg_gear_rpt_1_rc_;
+  RollingCounterValidation<MsgGearReport2>     msg_gear_rpt_2_rc_;
+  RollingCounterValidation<MsgSystemReport>    msg_system_rpt_rc_;
+  RollingCounterValidation<MsgVehicleVelocity> msg_veh_vel_rc_;
+  RollingCounterValidation<MsgThrtlInfo>       msg_thrtl_info_rc_;
+  RollingCounterValidation<MsgBrakeInfo>       msg_brake_info_rc_;
+  RollingCounterValidation<MsgUlcReport>       msg_ulc_rpt_rc_;
+  RollingCounterValidation<MsgAccel>           msg_accel_rc_;
+  RollingCounterValidation<MsgGyro>            msg_gyro_rc_;
+  RollingCounterValidation<MsgMiscReport1>     msg_misc_rpt_1_rc_;
+  RollingCounterValidation<MsgMiscReport2>     msg_misc_rpt_2_rc_;
+
+#if 0
+  template <typename T>
+  class ReportRecv {
+  public:
+    bool timeout = false;
+    bool fault = false;
+    bool override_active = false;
+    bool override_other = false;
+    bool override_latched = false;
+    bool recv(const T &msg) {
+      timeout = msg.timeout;
+      fault = msg.fault;
+      override_active = msg.override_active;
+      override_other = msg.override_other;
+      override_latched = msg.override_latched;
+    }
+    bool override(bool ignore_timeout) const {
+      if (!ignore_timeout || !timeout) {
+        return override_active || override_other || override_latched;
+      }
+      return false;
+    }
+    bool fault(bool ignore_timeout) const {
+      return !ignore_timeout && fault;
+      if (!ignore_timeout || !timeout) {
+        return fault;
+      }
+      return false;
+    }
+  };
+  #endif
+
+  // ECU Info
+  std::map<uint16_t, ds_dbw_msgs::msg::EcuInfo> ecu_info_;
+  std::map<uint8_t, uint32_t> cfg_hash_;
+  std::map<uint8_t, std::array<uint8_t,6>> mac_;
+  std::map<uint8_t, std::string> ldate_; // License date
+  std::map<uint8_t, std::string> ldate_recv_;
+  std::map<uint8_t, std::string> bdate_; // Build date
+  std::map<uint8_t, std::string> bdate_recv_;
   std::string vin_;
-  std::string ldate_; // License date
-  std::map<uint8_t, std::string> bdate_;
+  std::string vin_recv_;
 
   // Firmware Versions
-  dataspeed_dbw_common::PlatformMap firmware_;
+  ds_dbw_can::PlatformMap firmware_;
 
   // Frame ID
-  std::string frame_id_;
+  std::string frame_id_ = "base_footprint";
 
   // Command warnings
-  bool warn_cmds_;
-
-  // Buttons (enable/disable)
-  bool buttons_;
-
-  // Pedal LUTs (local/embedded)
-  bool pedal_luts_;
-
-  // Ackermann steering
-  double acker_wheelbase_;
-  double acker_track_;
-  double steering_ratio_;
-
-  // Joint states (enable/disable)
-  bool enable_joint_states_;
+  bool warn_crc_ = true;
+  bool warn_cmds_ = true;
+  bool warn_unknown_ = true;
 
   // Subscribed topics
   rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr sub_enable_;
   rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr sub_disable_;
   rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr sub_can_;
-  rclcpp::Subscription<dbw_ford_msgs::msg::BrakeCmd>::SharedPtr sub_brake_;
-  rclcpp::Subscription<dbw_ford_msgs::msg::ThrottleCmd>::SharedPtr sub_throttle_;
-  rclcpp::Subscription<dbw_ford_msgs::msg::SteeringCmd>::SharedPtr sub_steering_;
-  rclcpp::Subscription<dbw_ford_msgs::msg::GearCmd>::SharedPtr sub_gear_;
-  rclcpp::Subscription<dbw_ford_msgs::msg::MiscCmd>::SharedPtr sub_misc_;
+  rclcpp::Subscription<ds_dbw_msgs::msg::SteeringCmd>::SharedPtr sub_steer_;
+  rclcpp::Subscription<ds_dbw_msgs::msg::BrakeCmd>::SharedPtr sub_brake_;
+  rclcpp::Subscription<ds_dbw_msgs::msg::ThrottleCmd>::SharedPtr sub_thrtl_;
+  rclcpp::Subscription<ds_dbw_msgs::msg::GearCmd>::SharedPtr sub_gear_;
+  rclcpp::Subscription<ds_dbw_msgs::msg::MiscCmd>::SharedPtr sub_misc_;
+  rclcpp::Subscription<ds_dbw_msgs::msg::UlcCmd>::SharedPtr sub_ulc_;
+  rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr sub_calibrate_steering_;
 
   // Published topics
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr pub_can_;
-  rclcpp::Publisher<dbw_ford_msgs::msg::BrakeReport>::SharedPtr pub_brake_;
-  rclcpp::Publisher<dbw_ford_msgs::msg::ThrottleReport>::SharedPtr pub_throttle_;
-  rclcpp::Publisher<dbw_ford_msgs::msg::SteeringReport>::SharedPtr pub_steering_;
-  rclcpp::Publisher<dbw_ford_msgs::msg::GearReport>::SharedPtr pub_gear_;
-  rclcpp::Publisher<dbw_ford_msgs::msg::Misc1Report>::SharedPtr pub_misc_1_;
-  rclcpp::Publisher<dbw_ford_msgs::msg::WheelSpeedReport>::SharedPtr pub_wheel_speeds_;
-  rclcpp::Publisher<dbw_ford_msgs::msg::WheelPositionReport>::SharedPtr pub_wheel_positions_;
-  rclcpp::Publisher<dbw_ford_msgs::msg::TirePressureReport>::SharedPtr pub_tire_pressure_;
-  rclcpp::Publisher<dbw_ford_msgs::msg::FuelLevelReport>::SharedPtr pub_fuel_level_;
-  rclcpp::Publisher<dbw_ford_msgs::msg::SurroundReport>::SharedPtr pub_surround_;
-  rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub_sonar_cloud_;
-  rclcpp::Publisher<dbw_ford_msgs::msg::BrakeInfoReport>::SharedPtr pub_brake_info_;
-  rclcpp::Publisher<dbw_ford_msgs::msg::ThrottleInfoReport>::SharedPtr pub_throttle_info_;
-  rclcpp::Publisher<dbw_ford_msgs::msg::DriverAssistReport>::SharedPtr pub_driver_assist_;
+  rclcpp::Publisher<ds_dbw_msgs::msg::SteeringReport>::SharedPtr pub_steer_;
+  rclcpp::Publisher<ds_dbw_msgs::msg::BrakeReport>::SharedPtr pub_brake_;
+  rclcpp::Publisher<ds_dbw_msgs::msg::ThrottleReport>::SharedPtr pub_thrtl_;
+  rclcpp::Publisher<ds_dbw_msgs::msg::GearReport>::SharedPtr pub_gear_;
+  rclcpp::Publisher<ds_dbw_msgs::msg::VehicleVelocity>::SharedPtr pub_veh_vel_;
+  rclcpp::Publisher<ds_dbw_msgs::msg::ThrottleInfo>::SharedPtr pub_thrtl_info_;
+  rclcpp::Publisher<ds_dbw_msgs::msg::BrakeInfo>::SharedPtr pub_brake_info_;
+  rclcpp::Publisher<ds_dbw_msgs::msg::UlcReport>::SharedPtr pub_ulc_;
+  rclcpp::Publisher<ds_dbw_msgs::msg::WheelSpeeds>::SharedPtr pub_wheel_speeds_;
+  rclcpp::Publisher<ds_dbw_msgs::msg::WheelPositions>::SharedPtr pub_wheel_positions_;
+  rclcpp::Publisher<ds_dbw_msgs::msg::MiscReport>::SharedPtr pub_misc_;
+  rclcpp::Publisher<ds_dbw_msgs::msg::TirePressures>::SharedPtr pub_tire_pressures_;
+  rclcpp::Publisher<ds_dbw_msgs::msg::EcuInfo>::SharedPtr pub_ecu_info_;
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr pub_imu_;
-  rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr pub_gps_fix_;
-  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr pub_gps_vel_;
-  rclcpp::Publisher<sensor_msgs::msg::TimeReference>::SharedPtr pub_gps_time_;
-  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr pub_joint_states_;
-  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr pub_twist_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pub_vin_;      // Deprecated message
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr pub_sys_enable_; // Deprecated message
 
   // Time Synchronization
   dataspeed_can_msg_filters::ApproximateTime sync_imu_;
-  dataspeed_can_msg_filters::ApproximateTime sync_gps_;
+  dataspeed_can_msg_filters::ApproximateTime sync_misc_;
+  bool debug_sync_ = false;
+  void printSyncDelta(const can_msgs::msg::Frame::ConstSharedPtr &msg0, const can_msgs::msg::Frame::ConstSharedPtr &msg1, const char *name) const {
+    if (debug_sync_) {
+      const auto &stamp0 = msg0->header.stamp;
+      const auto &stamp1 = msg1->header.stamp;
+      RCLCPP_INFO(get_logger(), "Time: %u.%09u, %u.%09u, delta: %0.1fms for %s",
+                  stamp0.sec, stamp0.nanosec, stamp1.sec, stamp1.nanosec,
+                  std::abs((rclcpp::Time(stamp0) - rclcpp::Time(stamp1)).nanoseconds()) / 1e6, name);
+    }
+  }
 };
 
-} // namespace dbw_ford_can
+} // namespace ds_dbw_can

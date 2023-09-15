@@ -5,8 +5,8 @@
 #include <gtest/gtest.h>
 
 // File under test
-#include <dataspeed_dbw_common/PlatformVersion.hpp>
-using namespace dataspeed_dbw_common;
+#include <ds_dbw_can/PlatformVersion.hpp>
+using namespace ds_dbw_can;
 
 using PV = PlatformVersion;
 using MV = ModuleVersion;

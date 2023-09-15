@@ -28,7 +28,7 @@ else
   rosdep update
 fi
 
-sudo apt-get install -y ros-$ROS_DISTRO-dbw-ford
+sudo apt-get install -y ros-$ROS_DISTRO-ds-dbw
 sudo apt-get upgrade
 
 echo "SDK install: Done"
