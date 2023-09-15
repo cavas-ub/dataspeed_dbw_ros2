@@ -568,6 +568,7 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
               out.header.stamp = msg_can->header.stamp;
               out.vehicle_velocity_brake      = msg.velocityBrkKph()  / 3.6f; // kph to m/s
               out.vehicle_velocity_propulsion = msg.velocityPrplKph() / 3.6f; // kph to m/s
+              out.dir_src = (uint8_t)msg.dir_src;
               pub_veh_vel_->publish(out);
             } else {
               RCLCPP_WARN(get_logger(), "Ignoring vehicle velocity report with repeated rolling counter value");

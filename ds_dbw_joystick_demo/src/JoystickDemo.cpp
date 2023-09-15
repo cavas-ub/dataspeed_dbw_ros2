@@ -38,29 +38,118 @@
 
 namespace ds_dbw_joystick_demo {
 
+using namespace ds_dbw_msgs::msg;
+
+bool steerLpfCmd(uint8_t cmd_type) {
+  switch (cmd_type) {
+    case SteeringCmd::CMD_TORQUE:    return false;
+    case SteeringCmd::CMD_ANGLE:     return true;
+    case SteeringCmd::CMD_CURVATURE: return true;
+    case SteeringCmd::CMD_YAW_RATE:  return true;
+    case SteeringCmd::CMD_PERCENT:   return true;
+    default: return false;
+  }
+}
+float steerDefaultMax(uint8_t cmd_type) {
+  switch (cmd_type) {
+    case SteeringCmd::CMD_NONE:      return 0;
+    case SteeringCmd::CMD_TORQUE:    return 8;     // Nm
+    case SteeringCmd::CMD_ANGLE:     return 500;   // deg
+    case SteeringCmd::CMD_CURVATURE: return 0.201; // 1/m
+    case SteeringCmd::CMD_YAW_RATE:  return 5.01;  // rad/s
+    case SteeringCmd::CMD_PERCENT:   return 100.1; // %
+    default: return 0;
+  }
+}
+float brakeDefaultMin(uint8_t cmd_type) {
+  switch (cmd_type) {
+    case BrakeCmd::CMD_NONE:      return 0;
+    case BrakeCmd::CMD_PRESSURE:  return 0;   // bar
+    case BrakeCmd::CMD_TORQUE:    return 0;   // Nm
+    case BrakeCmd::CMD_ACCEL:     return 0.1; // m/s^2
+    case BrakeCmd::CMD_ACCEL_ACC: return 0.1; // m/s^2
+    case BrakeCmd::CMD_ACCEL_AEB: return 0.1; // m/s^2
+    case BrakeCmd::CMD_PEDAL_RAW: return 10;  // %
+    case BrakeCmd::CMD_PERCENT:   return 0;   // %
+    default: return 0;
+  }
+}
+float brakeDefaultMax(uint8_t cmd_type) {
+  switch (cmd_type) {
+    case BrakeCmd::CMD_NONE:      return 0;
+    case BrakeCmd::CMD_PRESSURE:  return 100.1; // bar
+    case BrakeCmd::CMD_TORQUE:    return 5000;  // Nm
+    case BrakeCmd::CMD_ACCEL:     return -10.0; // m/s^2
+    case BrakeCmd::CMD_ACCEL_ACC: return -10.0; // m/s^2
+    case BrakeCmd::CMD_ACCEL_AEB: return -10.0; // m/s^2
+    case BrakeCmd::CMD_PEDAL_RAW: return  90;   // %
+    case BrakeCmd::CMD_PERCENT:   return 100.1; // %
+    default: return 0;
+  }
+}
+float thrtlDefaultMin(uint8_t cmd_type) {
+  switch (cmd_type) {
+    case ThrottleCmd::CMD_NONE:      return 0;
+    case ThrottleCmd::CMD_PEDAL_RAW: return 10; // %
+    case ThrottleCmd::CMD_PERCENT:   return 0;  // %
+    default: return 0;
+  }
+}
+float thrtlDefaultMax(uint8_t cmd_type) {
+  switch (cmd_type) {
+    case ThrottleCmd::CMD_NONE:      return 0;
+    case ThrottleCmd::CMD_PEDAL_RAW: return 90;    // %
+    case ThrottleCmd::CMD_PERCENT:   return 100.1; // %
+    default: return 0;
+  }
+}
+
 JoystickDemo::JoystickDemo(const rclcpp::NodeOptions &options) : rclcpp::Node("joy_demo", options) {
+  startup_stamp_ = ros_clock_.now();
+
   joy_.axes.resize(AXIS_COUNT_X, 0);
   joy_.buttons.resize(BTN_COUNT_X, 0);
 
-  brake_ = declare_parameter<bool>("brake", brake_);
-  throttle_ = declare_parameter<bool>("throttle", throttle_);
-  steer_ = declare_parameter<bool>("steer", steer_);
-  shift_ = declare_parameter<bool>("shift", shift_);
-  misc_ = declare_parameter<bool>("misc", misc_);
-  brake_gain_ = std::clamp<float>(declare_parameter<float>("brake_gain", brake_gain_), 0, 1);
-  throttle_gain_ = std::clamp<float>(declare_parameter<float>("throttle_gain", throttle_gain_), 0, 1);
+  enable_ = declare_parameter("enable", enable_);
+  ignore_ = declare_parameter("ignore", ignore_);
 
-  ignore_ = declare_parameter<bool>("ignore", ignore_);
-  enable_ = declare_parameter<bool>("enable", enable_);
-  strq_ = declare_parameter<bool>("strq", strq_);
-  svel_ = declare_parameter<float>("svel", svel_);
-  sacl_ = declare_parameter<float>("sacl", sacl_);
+  steer_ = declare_parameter("steer", steer_);
+  brake_ = declare_parameter("brake", brake_);
+  thrtl_ = declare_parameter("thrtl", thrtl_);
+  shift_ = declare_parameter("shift", shift_);
+  misc_ = declare_parameter("misc", misc_);
+
+  steer_cmd_type_ = steerCmdType(declare_parameter("steer_cmd_type", ""));
+  brake_cmd_type_ = brakeCmdType(declare_parameter("brake_cmd_type", ""));
+  thrtl_cmd_type_ = thrtlCmdType(declare_parameter("thrtl_cmd_type", ""));
+
+  steer_max_ = steerDefaultMax(steer_cmd_type_);
+  brake_min_ = brakeDefaultMin(brake_cmd_type_);
+  brake_max_ = brakeDefaultMax(brake_cmd_type_);
+  thrtl_min_ = thrtlDefaultMin(thrtl_cmd_type_);
+  thrtl_max_ = thrtlDefaultMax(thrtl_cmd_type_);
+  try { steer_max_ = declare_parameter("steer_max", steer_max_); } catch (...) {}
+  try { brake_max_ = declare_parameter("brake_max", brake_max_); } catch (...) {}
+  try { brake_min_ = declare_parameter("brake_min", brake_min_); } catch (...) {}
+  try { thrtl_max_ = declare_parameter("thrtl_max", thrtl_max_); } catch (...) {}
+  try { thrtl_min_ = declare_parameter("thrtl_min", thrtl_min_); } catch (...) {}
+  if (steer_cmd_type_ == SteeringCmd::CMD_ANGLE) {
+    steer_max_ *= (float)(M_PI / 180); // Degrees to radians
+  }
+
+  steer_rate_ = declare_parameter("steer_rate", steer_rate_);
+  steer_accel_ = declare_parameter("steer_accel", steer_accel_);
+  brake_inc_ = declare_parameter("brake_inc", brake_inc_);
+  brake_dec_ = declare_parameter("brake_dec", brake_dec_);
+  thrtl_inc_ = declare_parameter("thrtl_inc", thrtl_inc_);
+  thrtl_dec_ = declare_parameter("thrtl_dec", thrtl_dec_);
 
   using std::placeholders::_1;
   sub_joy_ = create_subscription<sensor_msgs::msg::Joy>("/joy", 1, std::bind(&JoystickDemo::recvJoy, this, _1));
+  sub_veh_vel_ = create_subscription<VehicleVelocity>("vehicle_velocity", 1, std::bind(&JoystickDemo::recvVehVel, this, _1));
 
   data_.brake_joy = 0.0;
-  data_.gear_cmd = ds_dbw_msgs::msg::Gear::NONE;
+  data_.gear_cmd = Gear::NONE;
   data_.steering_joy = 0.0;
   data_.steering_mult = false;
   data_.steering_cal = false;
@@ -68,20 +157,21 @@ JoystickDemo::JoystickDemo(const rclcpp::NodeOptions &options) : rclcpp::Node("j
   data_.joy_throttle_valid = false;
   data_.joy_brake_valid = false;
 
-  if (brake_) {
-    pub_brake_ = create_publisher<ds_dbw_msgs::msg::BrakeCmd>("brake/cmd", 1);
-  }
-  if (throttle_) {
-    pub_throttle_ = create_publisher<ds_dbw_msgs::msg::ThrottleCmd>("throttle/cmd", 1);
-  }
   if (steer_) {
-    pub_steering_ = create_publisher<ds_dbw_msgs::msg::SteeringCmd>("steering/cmd", 1);
+    pub_steer_ = create_publisher<SteeringCmd>("steering/cmd", 1);
+  }
+  if (brake_) {
+    pub_brake_ = create_publisher<BrakeCmd>("brake/cmd", 1);
+  }
+  if (thrtl_) {
+    pub_thrtl_ = create_publisher<ThrottleCmd>("throttle/cmd", 1);
   }
   if (shift_) {
-    pub_gear_ = create_publisher<ds_dbw_msgs::msg::GearCmd>("gear/cmd", 1);
+    pub_gear_ = create_publisher<GearCmd>("gear/cmd", 1);
+    sub_gear_ = create_subscription<GearReport>("gear/report", 1, std::bind(&JoystickDemo::recvGear, this, _1));
   }
   if (misc_) {
-    pub_misc_ = create_publisher<ds_dbw_msgs::msg::MiscCmd>("misc/cmd", 1);
+    pub_misc_ = create_publisher<MiscCmd>("misc/cmd", 1);
   }
   if (enable_) {
     pub_enable_ = create_publisher<std_msgs::msg::Empty>("enable", 1);
@@ -89,121 +179,157 @@ JoystickDemo::JoystickDemo(const rclcpp::NodeOptions &options) : rclcpp::Node("j
   }
 
   // Initilize timestamp to be old (timeout)
-  data_.stamp = now() - std::chrono::seconds(1);
-  timer_ = create_wall_timer(std::chrono::milliseconds(20), std::bind(&JoystickDemo::cmdCallback, this));
+  using namespace std::chrono_literals;
+  data_.stamp = now() - 1s;
+  timer_ = create_wall_timer(20ms, std::bind(&JoystickDemo::cmdCallback, this));
 }
 
 void JoystickDemo::cmdCallback() {
+  using namespace std::chrono_literals;
+  bool startup_finished = ros_clock_.now() - startup_stamp_ > 1s;
+
   // Detect joy timeouts and reset
-  if (now() - data_.stamp > std::chrono::milliseconds(100)) {
+  if (now() - data_.stamp > 100ms) {
     data_.joy_throttle_valid = false;
     data_.joy_brake_valid = false;
     last_steering_filt_output_ = 0.0;
-    return;
+    if (!joy_warned_ && startup_finished) {
+      joy_warned_ = true;
+      RCLCPP_WARN(get_logger(), "Game controller timeout");
+    }
+    return; // Game controller timeout
+  } else {
+    if (joy_warned_) {
+      joy_warned_ = false;
+      RCLCPP_INFO(get_logger(), "Game controller ready");
+    }
   }
 
-  // Brake
-  if (brake_) {
-    ds_dbw_msgs::msg::BrakeCmd msg;
-    msg.enable = true;
-    msg.ignore = ignore_;
-    #if 0
-    msg.cmd_type = ds_dbw_msgs::msg::BrakeCmd::CMD_PRESSURE;
-    msg.cmd = data_.brake_joy * brake_gain_ * 100.1; // 0-100 bar
-    #elif 0
-    msg.cmd_type = ds_dbw_msgs::msg::BrakeCmd::CMD_TORQUE;
-    msg.cmd = data_.brake_joy * brake_gain_ * 10.1e3f; // 0-10k Nm
-    #elif 0
-    msg.cmd_type = ds_dbw_msgs::msg::BrakeCmd::CMD_ACCEL;
-    msg.cmd = data_.brake_joy * brake_gain_ * -10.2f + 0.1f; // +0.1-10 m/s^2
-    #elif 0
-    msg.cmd_type = ds_dbw_msgs::msg::BrakeCmd::CMD_ACCEL_ACC;
-    msg.cmd = data_.brake_joy * brake_gain_ * -5.2f + 0.1f; // +0.1-5 m/s^2
-    #elif 0
-    msg.cmd_type = ds_dbw_msgs::msg::BrakeCmd::CMD_ACCEL_AEB;
-    msg.cmd = data_.brake_joy * brake_gain_ * -10.2f + 0.1f; // +0.1-10 m/s^2
-    #else
-    msg.cmd_type = ds_dbw_msgs::msg::BrakeCmd::CMD_PERCENT;
-    msg.cmd = data_.brake_joy * brake_gain_ * 100.1; // 0-100%
-    #endif
-    #if 0
-    msg.rate_inc = INFINITY;
-    msg.rate_dec = INFINITY;
-    #endif
-    pub_brake_->publish(msg);
-  }
-
-  // Throttle
-  if (throttle_) {
-    ds_dbw_msgs::msg::ThrottleCmd msg;
-    msg.enable = true;
-    msg.ignore = ignore_;
-    #if 0
-    msg.cmd_type = ds_dbw_msgs::msg::ThrottleCmd::CMD_PEDAL_RAW;
-    msg.cmd = data_.throttle_joy * throttle_gain_ * 100.1f; // 0-100%
-    #else
-    msg.cmd_type = ds_dbw_msgs::msg::ThrottleCmd::CMD_PERCENT;
-    msg.cmd = data_.throttle_joy * throttle_gain_ * 100.1f; // 0-100%
-    #endif
-    #if 0
-    msg.rate_inc = INFINITY;
-    msg.rate_dec = INFINITY;
-    #endif
-    pub_throttle_->publish(msg);
+  // Vehicle velocity
+  float velocity = getVehVel();
+  constexpr float KPH_TO_MPS = 1 / 3.6;
+  if (std::isfinite(velocity)) {
+    if (velocity_warned_) {
+      velocity_warned_ = false;
+      RCLCPP_INFO(get_logger(), "Vehicle velocity ready");
+    }
+  } else {
+    if (!velocity_warned_ && startup_finished) {
+      velocity_warned_ = true;
+      RCLCPP_WARN(get_logger(), "Waiting for vehicle velocity");
+    }
+    return; // Invalid vehicle velocity or timeout
   }
 
   // Steering
   if (steer_) {
-    ds_dbw_msgs::msg::SteeringCmd msg;
+    if (std::abs(velocity) > 45 * KPH_TO_MPS) { // 45 kph
+      if (!disallow_steer_cmd_) {
+        disallow_steer_cmd_ = true;
+        RCLCPP_WARN(get_logger(), "Disabling steering commands due to excessive vehicle velocity");
+      }
+    } else if (std::abs(velocity) < 10 * KPH_TO_MPS) { // 10 kph
+      if (disallow_steer_cmd_) {
+        disallow_steer_cmd_ = false;
+        RCLCPP_INFO(get_logger(), "Re-enabling steering commands at lower vehicle velocity");
+      }
+    }
+    if (!disallow_steer_cmd_) {
+      SteeringCmd msg;
+      msg.enable = true;
+      msg.ignore = ignore_;
+      if (data_.steering_cal) {
+        msg.cmd_type = SteeringCmd::CMD_CALIBRATE;
+        msg.cmd = 0.0;
+      } else {
+        msg.cmd_type = steer_cmd_type_;
+        msg.cmd_rate  = steer_rate_  * (float)(M_PI / 180);
+        msg.cmd_accel = steer_accel_ * (float)(M_PI / 180);
+        float steering_joy = data_.steering_joy;
+        if (!data_.steering_mult) {
+          steering_joy *= 0.5;
+        }
+        if (steerLpfCmd(steer_cmd_type_)) {
+          constexpr float TAU = 0.1;
+          float filtered_steering_cmd = 0.02f / TAU * steering_joy + (1.0f - 0.02f / TAU) * last_steering_filt_output_;
+          last_steering_filt_output_ = filtered_steering_cmd;
+          msg.cmd = filtered_steering_cmd * steer_max_;
+        } else {
+          msg.cmd = steering_joy * steer_max_;
+        }
+      }
+      pub_steer_->publish(msg);
+    }
+  }
+
+  // Brake
+  if (brake_) {
+    BrakeCmd msg;
     msg.enable = true;
     msg.ignore = ignore_;
-    if (data_.steering_cal) {
-      msg.cmd_type = ds_dbw_msgs::msg::SteeringCmd::CMD_CALIBRATE;
-      msg.cmd = 0.0;
-    } else if (!strq_) {
-      // Scale and filter angle command
-      float raw_steering_cmd = data_.steering_joy;
-      if (!data_.steering_mult) {
-        raw_steering_cmd *= 0.5;
-      }
-      constexpr float TAU = 0.1;
-      float filtered_steering_cmd = 0.02f / TAU * raw_steering_cmd + (1.0f - 0.02f / TAU) * last_steering_filt_output_;
-      last_steering_filt_output_ = filtered_steering_cmd;
+    msg.cmd_type = brake_cmd_type_;
+    msg.cmd = data_.brake_joy * (brake_max_ - brake_min_) + brake_min_;
+    msg.rate_inc = brake_inc_;
+    msg.rate_dec = brake_dec_;
+    pub_brake_->publish(msg);
+  }
 
-      #if 0
-      msg.cmd_type = ds_dbw_msgs::msg::SteeringCmd::CMD_ANGLE;
-      msg.cmd = filtered_steering_cmd * (float)(M_PI / 180) * 500.1; // +-500 deg
-      #elif 0
-      msg.cmd_type = ds_dbw_msgs::msg::SteeringCmd::CMD_CURVATURE;
-      msg.cmd = filtered_steering_cmd * 0.201f; // +-0.2/m
-      #elif 0
-      msg.cmd_type = ds_dbw_msgs::msg::SteeringCmd::CMD_YAW_RATE;
-      msg.cmd = filtered_steering_cmd * 5.01; // +-5 rad/s
-      #else
-      msg.cmd_type = ds_dbw_msgs::msg::SteeringCmd::CMD_PERCENT;
-      msg.cmd = filtered_steering_cmd * 100.1f; // +-100%
-      #endif
-      msg.cmd_rate  = svel_ * (float)(M_PI / 180);
-      msg.cmd_accel = sacl_ * (float)(M_PI / 180);
-    } else {
-      msg.cmd_type = ds_dbw_msgs::msg::SteeringCmd::CMD_TORQUE;
-      msg.cmd = data_.steering_joy * 12; // 12 Nm
-    }
-    pub_steering_->publish(msg);
+  // Throttle
+  if (thrtl_) {
+    ThrottleCmd msg;
+    msg.enable = true;
+    msg.ignore = ignore_;
+    msg.cmd_type = thrtl_cmd_type_;
+    msg.cmd = data_.throttle_joy * (thrtl_max_ - thrtl_min_) + thrtl_min_;
+    msg.rate_inc = thrtl_inc_;
+    msg.rate_dec = thrtl_dec_;
+    pub_thrtl_->publish(msg);
   }
 
   // Gear
   if (shift_) {
-    if (data_.gear_cmd != ds_dbw_msgs::msg::Gear::NONE) {
-      ds_dbw_msgs::msg::GearCmd msg;
-      msg.cmd.value = data_.gear_cmd;
-      pub_gear_->publish(msg);
+    if (data_.gear_cmd != Gear::NONE) {
+      uint8_t gear = getGear();
+      if (gear != Gear::NONE) {
+        GearCmd msg;
+        msg.cmd.value = data_.gear_cmd;
+        switch (msg.cmd.value) {
+          case Gear::PARK:
+            if (gear == Gear::PARK || std::abs(velocity) < 10 * KPH_TO_MPS) {
+              pub_gear_->publish(msg);
+            } else {
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2e3, "Not sending gear command park: Excessive vehicle velocity");
+            }
+            break;
+          case Gear::REVERSE:
+            if (gear == Gear::REVERSE || velocity < 10 * KPH_TO_MPS) {
+              pub_gear_->publish(msg);
+            } else {
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2e3, "Not sending gear command reverse: Excessive vehicle velocity");
+            }
+            break;
+          case Gear::NEUTRAL:
+            pub_gear_->publish(msg);
+            break;
+          case Gear::DRIVE:
+          case Gear::LOW:
+            if (gear == Gear::DRIVE || gear == Gear::LOW || velocity > -10 * KPH_TO_MPS) {
+              pub_gear_->publish(msg);
+            } else {
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2e3, "Not sending gear command drive: Excessive vehicle velocity");
+            }
+            break;
+          default:
+            RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2e3, "Not sending unknown gear command: %u", msg.cmd.value);
+            break;
+        }
+      }
     }
   }
 
   // Turn signal
   if (misc_) {
-    ds_dbw_msgs::msg::MiscCmd msg;
+    MiscCmd msg;
     msg.turn_signal.value = data_.turn_signal_cmd;
     // msg.parking_brake.value = 0;
     // msg.door.select = data_.door_select;
@@ -252,15 +378,15 @@ void JoystickDemo::recvJoy(const sensor_msgs::msg::Joy::ConstSharedPtr msg) {
 
   // Gear
   if (msg->buttons[BTN_PARK]) {
-    data_.gear_cmd = ds_dbw_msgs::msg::Gear::PARK;
+    data_.gear_cmd = Gear::PARK;
   } else if (msg->buttons[BTN_REVERSE]) {
-    data_.gear_cmd = ds_dbw_msgs::msg::Gear::REVERSE;
+    data_.gear_cmd = Gear::REVERSE;
   } else if (msg->buttons[BTN_DRIVE]) {
-    data_.gear_cmd = ds_dbw_msgs::msg::Gear::DRIVE;
+    data_.gear_cmd = Gear::DRIVE;
   } else if (msg->buttons[BTN_NEUTRAL]) {
-    data_.gear_cmd = ds_dbw_msgs::msg::Gear::NEUTRAL;
+    data_.gear_cmd = Gear::NEUTRAL;
   } else {
-    data_.gear_cmd = ds_dbw_msgs::msg::Gear::NONE;
+    data_.gear_cmd = Gear::NONE;
   }
 
   // Steering
@@ -276,25 +402,25 @@ void JoystickDemo::recvJoy(const sensor_msgs::msg::Joy::ConstSharedPtr msg) {
   if (msg->axes[AXIS_TURN_SIG] != joy_.axes[AXIS_TURN_SIG]) {
     if (std::abs(msg->axes[AXIS_DOOR_ACTION]) < 0.5) {
       switch (data_.turn_signal_cmd) {
-        case ds_dbw_msgs::msg::TurnSignal::NONE:
+        case TurnSignal::NONE:
           if (msg->axes[AXIS_TURN_SIG] < -0.5) {
-            data_.turn_signal_cmd = ds_dbw_msgs::msg::TurnSignal::RIGHT;
+            data_.turn_signal_cmd = TurnSignal::RIGHT;
           } else if (msg->axes[AXIS_TURN_SIG] > 0.5) {
-            data_.turn_signal_cmd = ds_dbw_msgs::msg::TurnSignal::LEFT;
+            data_.turn_signal_cmd = TurnSignal::LEFT;
           }
           break;
-        case ds_dbw_msgs::msg::TurnSignal::LEFT:
+        case TurnSignal::LEFT:
           if (msg->axes[AXIS_TURN_SIG] < -0.5) {
-            data_.turn_signal_cmd = ds_dbw_msgs::msg::TurnSignal::RIGHT;
+            data_.turn_signal_cmd = TurnSignal::RIGHT;
           } else if (msg->axes[AXIS_TURN_SIG] > 0.5) {
-            data_.turn_signal_cmd = ds_dbw_msgs::msg::TurnSignal::NONE;
+            data_.turn_signal_cmd = TurnSignal::NONE;
           }
           break;
-        case ds_dbw_msgs::msg::TurnSignal::RIGHT:
+        case TurnSignal::RIGHT:
           if (msg->axes[AXIS_TURN_SIG] < -0.5) {
-            data_.turn_signal_cmd = ds_dbw_msgs::msg::TurnSignal::NONE;
+            data_.turn_signal_cmd = TurnSignal::NONE;
           } else if (msg->axes[AXIS_TURN_SIG] > 0.5) {
-            data_.turn_signal_cmd = ds_dbw_msgs::msg::TurnSignal::LEFT;
+            data_.turn_signal_cmd = TurnSignal::LEFT;
           }
           break;
       }
@@ -303,31 +429,31 @@ void JoystickDemo::recvJoy(const sensor_msgs::msg::Joy::ConstSharedPtr msg) {
 
   #if 0
   // Doors and trunk
-  data_.door_select = dbw_fca_msgs::msg::DoorCmd::NONE;
-  data_.door_action = dbw_fca_msgs::msg::DoorCmd::NONE;
+  data_.door_select = DoorCmd::NONE;
+  data_.door_action = DoorCmd::NONE;
   if (msg->buttons[BTN_TRUNK_OPEN]) {
-    data_.door_select = dbw_fca_msgs::msg::DoorCmd::TRUNK;
-    data_.door_action = dbw_fca_msgs::msg::DoorCmd::OPEN;
+    data_.door_select = DoorCmd::TRUNK;
+    data_.door_action = DoorCmd::OPEN;
   } else if (msg->buttons[BTN_TRUNK_CLOSE]) {
-    data_.door_select = dbw_fca_msgs::msg::DoorCmd::TRUNK;
-    data_.door_action = dbw_fca_msgs::msg::DoorCmd::CLOSE;
+    data_.door_select = DoorCmd::TRUNK;
+    data_.door_action = DoorCmd::CLOSE;
   }
   if (msg->axes[AXIS_DOOR_ACTION] > 0.5) {
     if (msg->axes[AXIS_DOOR_SELECT] < -0.5) {
-      data_.door_select = dbw_fca_msgs::msg::DoorCmd::RIGHT;
-      data_.door_action = dbw_fca_msgs::msg::DoorCmd::OPEN;
+      data_.door_select = DoorCmd::RIGHT;
+      data_.door_action = DoorCmd::OPEN;
     } else if (msg->axes[AXIS_TURN_SIG] > 0.5) {
-      data_.door_select = dbw_fca_msgs::msg::DoorCmd::LEFT;
-      data_.door_action = dbw_fca_msgs::msg::DoorCmd::OPEN;
+      data_.door_select = DoorCmd::LEFT;
+      data_.door_action = DoorCmd::OPEN;
     }
   }
   if (msg->axes[AXIS_DOOR_ACTION] < -0.5) {
     if (msg->axes[AXIS_DOOR_SELECT] < -0.5) {
-      data_.door_select = dbw_fca_msgs::msg::DoorCmd::RIGHT;
-      data_.door_action = dbw_fca_msgs::msg::DoorCmd::CLOSE;
+      data_.door_select = DoorCmd::RIGHT;
+      data_.door_action = DoorCmd::CLOSE;
     } else if (msg->axes[AXIS_TURN_SIG] > 0.5) {
-      data_.door_select = dbw_fca_msgs::msg::DoorCmd::LEFT;
-      data_.door_action = dbw_fca_msgs::msg::DoorCmd::CLOSE;
+      data_.door_select = DoorCmd::LEFT;
+      data_.door_action = DoorCmd::CLOSE;
     }
   }
   #endif
@@ -344,6 +470,16 @@ void JoystickDemo::recvJoy(const sensor_msgs::msg::Joy::ConstSharedPtr msg) {
 
   data_.stamp = now();
   joy_ = *msg;
+}
+
+void JoystickDemo::recvGear(const GearReport::ConstSharedPtr msg) {
+  msg_gear_ = *msg;
+  msg_gear_stamp_ = ros_clock_.now();
+}
+
+void JoystickDemo::recvVehVel(const VehicleVelocity::ConstSharedPtr msg) {
+  veh_vel_ = *msg;
+  veh_vel_stamp_ = ros_clock_.now();
 }
 
 } // namespace ds_dbw_joystick_demo
