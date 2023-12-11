@@ -28,7 +28,6 @@
 
   <exec_depend>dataspeed_can_usb</exec_depend>
   <exec_depend>dbw_polaris_description</exec_depend>
-  <exec_depend>dataspeed_dbw_gateway</exec_depend>
   <exec_depend>dataspeed_ulc_can</exec_depend>
 
   <test_depend>ament_cmake_gtest</test_depend>

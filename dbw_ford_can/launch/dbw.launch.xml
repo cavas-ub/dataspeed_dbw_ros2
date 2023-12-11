@@ -63,8 +63,6 @@
       <param name="steering_ratio" value="$(var steering_ratio)" />
       <param name="joint_states" value="$(var load_urdf)" />
     </node>
-    <node pkg="dataspeed_dbw_gateway" exec="ford_gateway" output="screen">
-    </node>
     <node if="$(var ulc)" pkg="dataspeed_ulc_can" exec="ulc_node" output="screen">
       <remap from="can_rx" to="$(var can_ns)/can_rx"/>
       <remap from="can_tx" to="$(var can_ns)/can_tx"/>
