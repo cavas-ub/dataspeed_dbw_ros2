@@ -77,13 +77,13 @@ float brakeDefaultMin(uint8_t cmd_type) {
 float brakeDefaultMax(uint8_t cmd_type) {
   switch (cmd_type) {
     case BrakeCmd::CMD_NONE:      return 0;
-    case BrakeCmd::CMD_PRESSURE:  return 100.1; // bar
-    case BrakeCmd::CMD_TORQUE:    return 5000;  // Nm
-    case BrakeCmd::CMD_ACCEL:     return -10.0; // m/s^2
-    case BrakeCmd::CMD_ACCEL_ACC: return -10.0; // m/s^2
-    case BrakeCmd::CMD_ACCEL_AEB: return -10.0; // m/s^2
-    case BrakeCmd::CMD_PEDAL_RAW: return  90;   // %
-    case BrakeCmd::CMD_PERCENT:   return 100.1; // %
+    case BrakeCmd::CMD_PRESSURE:  return 100;  // bar
+    case BrakeCmd::CMD_TORQUE:    return 5000; // Nm
+    case BrakeCmd::CMD_ACCEL:     return -8.0; // m/s^2
+    case BrakeCmd::CMD_ACCEL_ACC: return -8.0; // m/s^2
+    case BrakeCmd::CMD_ACCEL_AEB: return -8.0; // m/s^2
+    case BrakeCmd::CMD_PEDAL_RAW: return  90;  // %
+    case BrakeCmd::CMD_PERCENT:   return  80;  // %
     default: return 0;
   }
 }
