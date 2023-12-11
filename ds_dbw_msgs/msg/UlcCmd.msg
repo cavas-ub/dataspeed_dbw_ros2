@@ -15,8 +15,8 @@ bool enable
 bool clear
 
 # Options
-bool enable_shifting
-bool shift_from_park
+bool enable_shift
+bool enable_shift_park
 bool coast_decel
 
 # Command types

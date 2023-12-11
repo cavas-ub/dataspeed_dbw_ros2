@@ -3,7 +3,8 @@ std_msgs/Header header
 # Turn Signal enumeration
 TurnSignal turn_signal
 
-# parking brake
+# Parking brake
+PrkBrkStat parking_brake
 
 # Passenger seat
 bool passenger_detect
@@ -43,9 +44,11 @@ bool btn_cc_res_inc   # Cruise Control Resume+
 bool btn_cc_res_dec   # Cruise Control Resume-
 bool btn_cc_set_inc   # Cruise Control Set+
 bool btn_cc_set_dec   # Cruise Control Set-
-bool btn_cc_gap_inc   # Cruise Control Gap+
-bool btn_cc_gap_dec   # Cruise Control Gap-
+bool btn_acc_gap_inc  # Adaptive Cruise Control Gap+
+bool btn_acc_gap_dec  # Adaptive Cruise Control Gap-
+bool btn_limit_on_off # Speed Limiter On/Off Toggle
 bool btn_la_on_off    # Lane Assist On/Off Toggle
+bool btn_apa          # Active Park Assist
 bool btn_media        # Media (source)
 bool btn_vol_inc      # Volume increment
 bool btn_vol_dec      # Volume decrement

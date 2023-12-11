@@ -44,7 +44,7 @@ bool fault_comms_actuator_1
 bool fault_comms_actuator_2
 bool fault_vehicle_speed
 bool fault_actuator_acc_deny
-bool fault_actuator_pedal_torque
+bool fault_actuator_pedal_sensor
 bool fault_actuator_1
 bool fault_actuator_2
 bool fault_calibration

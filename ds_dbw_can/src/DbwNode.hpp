@@ -50,6 +50,7 @@
 #include <ds_dbw_msgs/msg/gear_cmd.hpp>
 #include <ds_dbw_msgs/msg/gear_diagnostics.hpp>
 #include <ds_dbw_msgs/msg/gear_report.hpp>
+#include <ds_dbw_msgs/msg/system_report.hpp>
 #include <ds_dbw_msgs/msg/vehicle_velocity.hpp>
 #include <ds_dbw_msgs/msg/throttle_info.hpp>
 #include <ds_dbw_msgs/msg/brake_info.hpp>
@@ -331,6 +332,7 @@ private:
   rclcpp::Publisher<ds_dbw_msgs::msg::ThrottleDiagnostics>::SharedPtr pub_thrtl_diag_;
   rclcpp::Publisher<ds_dbw_msgs::msg::GearReport>::SharedPtr pub_gear_rpt_;
   rclcpp::Publisher<ds_dbw_msgs::msg::GearDiagnostics>::SharedPtr pub_gear_diag_;
+  rclcpp::Publisher<ds_dbw_msgs::msg::SystemReport>::SharedPtr pub_system_rpt_;
   rclcpp::Publisher<ds_dbw_msgs::msg::VehicleVelocity>::SharedPtr pub_veh_vel_;
   rclcpp::Publisher<ds_dbw_msgs::msg::ThrottleInfo>::SharedPtr pub_thrtl_info_;
   rclcpp::Publisher<ds_dbw_msgs::msg::BrakeInfo>::SharedPtr pub_brake_info_;

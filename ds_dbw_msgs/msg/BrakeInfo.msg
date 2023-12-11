@@ -11,8 +11,8 @@ bool abs_active
 bool abs_enabled
 
 # Stability Control
-bool stab_active
-bool stab_enabled
+bool esc_active
+bool esc_enabled
 
 # Traction Control
 bool trac_active

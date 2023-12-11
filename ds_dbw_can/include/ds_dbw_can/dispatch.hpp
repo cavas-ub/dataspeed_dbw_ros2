@@ -34,6 +34,9 @@
 #pragma once
 
 #include <stdint.h>
+#include <stddef.h> // size_t
+#include <stdbool.h> // bool
+#include <string.h> // memset()
 #include <math.h> // std::round(), std::abs()
 #include <algorithm> // std::clamp()
 #include <array> // std::array
@@ -64,7 +67,7 @@ enum class CmdSrc : uint8_t {
     ULC = 1,
     Remote = 2,
     Button = 3,
-    Future = 7,
+    _Future = 7,
 };
 enum class Gear : uint8_t {
     None = 0,
@@ -263,7 +266,9 @@ struct MsgSteerCmdUsr : public MsgSteerCmd {
 static_assert(sizeof(MsgSteerCmdUsr) == sizeof(MsgSteerCmd));
 struct MsgSteerReport1 {
     static constexpr uint32_t ID = 0x100;
-    static constexpr size_t PERIOD_MS = 10;
+    static constexpr size_t PERIOD_MIN =  8;
+    static constexpr size_t PERIOD_MS  = 10;
+    static constexpr size_t PERIOD_MAX = 25;
     static constexpr size_t TIMEOUT_MS = 100;
     enum class CmdType : uint8_t {
         None = 0,
@@ -273,17 +278,14 @@ struct MsgSteerReport1 {
     int16_t angle :14; // 0.1 deg
     uint8_t limiting_value :1;
     uint8_t limiting_rate :1;
-
     int16_t cmd :14; // 0.1 deg or 0.0078125 Nm
     CmdType cmd_type :2;
-
     int8_t torque; // 0.0625 Nm
     uint8_t :4;
     uint8_t external_control :1;
     uint8_t override_active :1;
     uint8_t override_other :1;
     uint8_t override_latched :1;
-
     uint8_t ready :1;
     uint8_t enabled :1;
     uint8_t fault :1;
@@ -585,7 +587,7 @@ struct MsgBrakeCmd {
         if (rate_inc == 0) {
             return 0; // Default
         } else if (rate_inc < UINT8_MAX) {
-            return rate_inc * 10;
+            return std::max<float>(rate_inc * 10, 100); // Minimum of 100 bar/s
         } else {
             return INFINITY; // Unlimited
         }
@@ -594,7 +596,7 @@ struct MsgBrakeCmd {
         if (rate_dec == 0) {
             return 0; // Default
         } else if (rate_dec < UINT8_MAX) {
-            return rate_dec * 10;
+            return std::max<float>(rate_dec * 10, 100); // Minimum of 100 bar/s
         } else {
             return INFINITY; // Unlimited
         }
@@ -603,7 +605,7 @@ struct MsgBrakeCmd {
         if (rate_inc == 0) {
             return 0; // Default
         } else if (rate_inc < UINT8_MAX) {
-            return rate_inc * 1000;
+            return std::max<float>(rate_inc * 1e3f, 10e3f); // Minimum of 10 kNm/s
         } else {
             return INFINITY; // Unlimited
         }
@@ -612,7 +614,7 @@ struct MsgBrakeCmd {
         if (rate_dec == 0) {
             return 0; // Default
         } else if (rate_dec < UINT8_MAX) {
-            return rate_dec * 1000;
+            return std::max<float>(rate_dec * 1e3f, 10e3f); // Minimum of 10 kNm/s
         } else {
             return INFINITY; // Unlimited
         }
@@ -621,7 +623,7 @@ struct MsgBrakeCmd {
         if (rate_inc == 0) {
             return 0; // Default
         } else if (rate_inc < UINT8_MAX) {
-            return rate_inc;
+            return std::max(rate_inc, (uint8_t)10); // Minimum of 10 m/s^3
         } else {
             return INFINITY; // Unlimited
         }
@@ -630,7 +632,7 @@ struct MsgBrakeCmd {
         if (rate_dec == 0) {
             return 0; // Default
         } else if (rate_dec < UINT8_MAX) {
-            return rate_dec;
+            return std::max(rate_dec, (uint8_t)10); // Minimum of 10 m/s^3
         } else {
             return INFINITY; // Unlimited
         }
@@ -639,7 +641,7 @@ struct MsgBrakeCmd {
         if (rate_inc == 0) {
             return 0; // Default
         } else if (rate_inc < UINT8_MAX) {
-            return rate_inc * 10;
+            return std::max<float>(rate_inc * 10, 100); // Minimum of 100 %/s
         } else {
             return INFINITY; // Unlimited
         }
@@ -648,7 +650,7 @@ struct MsgBrakeCmd {
         if (rate_dec == 0) {
             return 0; // Default
         } else if (rate_dec < UINT8_MAX) {
-            return rate_dec * 10;
+            return std::max<float>(rate_dec * 10, 100); // Minimum of 100 %/s
         } else {
             return INFINITY; // Unlimited
         }
@@ -696,7 +698,9 @@ struct MsgBrakeCmdUlc : public MsgBrakeCmd {
 static_assert(sizeof(MsgBrakeCmdUlc) == sizeof(MsgBrakeCmd));
 struct MsgBrakeReport1 {
     static constexpr uint32_t ID = 0x101;
-    static constexpr size_t PERIOD_MS = 20;
+    static constexpr size_t PERIOD_MIN = 15;
+    static constexpr size_t PERIOD_MS  = 20;
+    static constexpr size_t PERIOD_MAX = 25;
     static constexpr size_t TIMEOUT_MS = 100;
     typedef MsgBrakeCmd::CmdType CmdType;
     /* Units for input     cmd          output
@@ -711,16 +715,13 @@ struct MsgBrakeReport1 {
     uint8_t :1;
     uint8_t limiting_value :1;
     uint8_t limiting_rate :1;
-
     uint16_t cmd :12; // Interpretation changes with cmd_type, 4095=unknown
     CmdType cmd_type :4;
-
     uint16_t output :12; // Interpretation changes with cmd_type, 4095=unknown
     uint8_t external_control :1;
     uint8_t override_active :1;
     uint8_t override_other :1;
     uint8_t override_latched :1;
-
     uint8_t ready :1;
     uint8_t enabled :1;
     uint8_t fault :1;
@@ -926,6 +927,11 @@ struct MsgBrakeReport2 {
     static constexpr uint32_t ID = 0x301;
     static constexpr size_t PERIOD_MS = 200;
     static constexpr size_t TIMEOUT_MS = 1000;
+    enum class BrkAvlMode : uint8_t {
+        Unlimited = 0,
+        SecondsX2 = 1,
+        MillisecondsX100 = 2,
+    };
     uint8_t degraded :1;
     uint8_t degraded_cmd_type :1;
     uint8_t degraded_comms :1;
@@ -944,8 +950,12 @@ struct MsgBrakeReport2 {
     uint8_t :1;
     uint8_t :8;
     uint8_t :8;
-    uint8_t :8;
-    uint16_t brake_available_duration :10; // 1 sec for pressure, 0.1 sec for AEB
+    uint8_t :5;
+    uint8_t req_park_brake :1;
+    uint8_t req_shift_park :1;
+    uint8_t brake_available_full :1;
+    uint8_t brake_available_duration :8; // 2 sec or 100ms
+    BrkAvlMode brake_available_mux :2;
     uint8_t external_button :1;
     CmdSrc cmd_src :3;
     uint8_t rc :2;
@@ -954,6 +964,46 @@ struct MsgBrakeReport2 {
         uint8_t save = rc;
         memset(this, 0x00, sizeof(*this));
         rc = save;
+    }
+    void setBrkAvailDurSec(uint16_t seconds, uint16_t seconds_full, uint16_t offset = 0) {
+        brake_available_mux = BrkAvlMode::SecondsX2;
+        if (seconds != UINT16_MAX) {
+            if (seconds > offset) {
+                brake_available_duration = std::min<uint16_t>((seconds - offset) >> 1, UINT8_MAX - 1);
+            } else {
+                brake_available_duration = 0;
+            }
+            brake_available_full = seconds >= seconds_full;
+        } else {
+            brake_available_duration = UINT8_MAX;
+            brake_available_full = false;
+        }
+    }
+    void setBrkAvailDurMs(uint32_t ms, uint32_t ms_full) {
+        brake_available_mux = BrkAvlMode::MillisecondsX100;
+        if (ms != UINT32_MAX) {
+            brake_available_duration = std::min<uint16_t>(ms / 100, UINT8_MAX - 1);
+            brake_available_full = ms >= ms_full;
+        } else {
+            brake_available_duration = UINT8_MAX;
+            brake_available_full = false;
+        }
+    }
+    bool brkAvailDurValid() const {
+        return brake_available_duration != UINT8_MAX;
+    }
+    float brkAvailDurSec() const {
+        if (brake_available_mux == BrkAvlMode::Unlimited) {
+            return INFINITY;
+        } else if (brkAvailDurValid()) {
+            if (brake_available_mux == BrkAvlMode::SecondsX2) {
+                return brake_available_duration << 1;
+            }
+            if (brake_available_mux == BrkAvlMode::MillisecondsX100) {
+                return brake_available_duration * 0.1f;
+            }
+        }
+        return NAN;
     }
     void setCrc() {
         static_assert(crc8(ID, MSG_NULL, offsetof(typeof(*this), crc)) != 0x00);
@@ -1008,7 +1058,7 @@ struct MsgBrakeReport3 {
     uint8_t :1;
     uint8_t fault_vehicle_speed :1;
     uint8_t fault_actuator_acc_deny :1;
-    uint8_t fault_actuator_pedal_torque :1;
+    uint8_t fault_actuator_pedal_sensor :1;
     uint8_t :3;
     uint8_t fault_actuator_1 :1;
     uint8_t fault_actuator_2 :1;
@@ -1077,7 +1127,6 @@ struct MsgThrtlCmd {
         if (rate_inc == 0) {
             return 0; // Default
         } else if (rate_inc < UINT8_MAX) {
-            return rate_inc * 10;
             return std::max<float>(rate_inc * 10, 100); // Minimum of 100 %/s
         } else {
             return INFINITY; // Unlimited
@@ -1087,13 +1136,12 @@ struct MsgThrtlCmd {
         if (rate_dec == 0) {
             return 0; // Default
         } else if (rate_dec < UINT8_MAX) {
-            return rate_dec * 10;
+            return std::max<float>(rate_dec * 10, 100); // Minimum of 100 %/s
         } else {
             return INFINITY; // Unlimited
         }
     }
     uint16_t cmdPercentU16() const {
-        // return std::clamp<float>(cmd * 0.025f * ((float)UINT16_MAX / 100), 0, UINT16_MAX);
         constexpr uint16_t MAX = 100 / 0.025;
         if (cmd < MAX) {
             return (cmd * UINT16_MAX) / MAX;
@@ -1168,16 +1216,13 @@ struct MsgThrtlReport1 {
     uint16_t :2;
     uint8_t limiting_value :1;
     uint8_t limiting_rate :1;
-
     uint16_t cmd :12; // 0.025 %
     CmdType cmd_type :4;
-
     uint16_t output :12; // 0.025 %, 4095=unknown
     uint8_t external_control :1;
     uint8_t override_active :1;
     uint8_t override_other :1;
     uint8_t override_latched :1;
-
     uint8_t ready :1;
     uint8_t enabled :1;
     uint8_t fault :1;
@@ -1396,17 +1441,19 @@ struct MsgGearCmdUlc : public MsgGearCmd {
 static_assert(sizeof(MsgGearCmdUlc) == sizeof(MsgGearCmd));
 struct MsgGearReport1 {
     static constexpr uint32_t ID = 0x103;
-    static constexpr size_t PERIOD_MS = 100;
+    static constexpr size_t PERIOD_MIN =  20;
+    static constexpr size_t PERIOD_MS  = 100;
+    static constexpr size_t PERIOD_MAX = 100;
     static constexpr size_t TIMEOUT_MS = 350;
     enum class Reject : uint8_t {
         None = 0,            // Not rejected
-        ShiftInProgress = 1, // Shift in progress
-        Override = 2,        // Override on brake, throttle, or steering
-        Neutral = 3,         // Manually shift to neutral before auto-shift
-        Reserved1 = 4,
-        Vehicle = 5,         // Rejected by vehicle (try pressing the brakes)
-        Unsupported = 6,     // Unsupported gear command
-        Fault = 7,           // System in fault state
+        Fault = 1,           // System in fault state
+        Unsupported = 2,     // Unsupported gear command
+        ShiftInProgress = 3, // Shift in progress
+        Override = 4,        // Override on brake, throttle, or steering
+        BrakeHold = 5,       // Brake hold time depleted, stay in park
+        Reserved = 6,
+        Vehicle = 7,         // Rejected by vehicle (try pressing the brakes)
     };
     Gear gear :3;
     uint8_t :1; // Future expansion of gear
@@ -1592,7 +1639,9 @@ struct MsgSystemCmd {
 static_assert(2 == sizeof(MsgSystemCmd));
 struct MsgSystemReport {
     static constexpr uint32_t ID = 0x106;
-    static constexpr size_t PERIOD_MS = 100;
+    static constexpr size_t PERIOD_MIN = 20;
+    static constexpr size_t PERIOD_MS  = 100;
+    static constexpr size_t PERIOD_MAX = 100;
     static constexpr size_t TIMEOUT_MS = 250;
     enum class ReasonNotReady : uint8_t {
         None                 =  0,
@@ -1655,14 +1704,79 @@ struct MsgSystemReport {
         ExternalBrake       = 0xA0,
         Unknown             = 0xFF,
     };
+    static constexpr const char * reasonToString(ReasonNotReady x) {
+        switch (x) {
+            case ReasonNotReady::None:                 return "";
+            case ReasonNotReady::MissingReportSteer:   return "MissingReportSteer";
+            case ReasonNotReady::MissingReportBrake:   return "MissingReportBrake";
+            case ReasonNotReady::MissingReportThrtl:   return "MissingReportThrtl";
+            case ReasonNotReady::MissingReportGear:    return "MissingReportGear";
+            case ReasonNotReady::FaultSteer:           return "FaultSteer";
+            case ReasonNotReady::FaultBrake:           return "FaultBrake";
+            case ReasonNotReady::FaultThrtl:           return "FaultThrtl";
+            case ReasonNotReady::FaultGear:            return "FaultGear";
+            case ReasonNotReady::OverrideActiveSteer:  return "OverrideActiveSteer";
+            case ReasonNotReady::OverrideActiveBrake:  return "OverrideActiveBrake";
+            case ReasonNotReady::OverrideActiveThrtl:  return "OverrideActiveThrtl";
+            case ReasonNotReady::OverrideActiveGear:   return "OverrideActiveGear";
+            case ReasonNotReady::OverrideLatchedSteer: return "OverrideLatchedSteer";
+            case ReasonNotReady::OverrideLatchedBrake: return "OverrideLatchedBrake";
+            case ReasonNotReady::OverrideLatchedThrtl: return "OverrideLatchedThrtl";
+            case ReasonNotReady::OverrideOtherSteer:   return "OverrideOtherSteer";
+            case ReasonNotReady::OverrideOtherBrake:   return "OverrideOtherBrake";
+            case ReasonNotReady::OverrideOtherThrtl:   return "OverrideOtherThrtl";
+            case ReasonNotReady::OverrideOtherGear:    return "OverrideOtherGear";
+            case ReasonNotReady::NotReadySteer:        return "NotReadySteer";
+            case ReasonNotReady::NotReadyBrake:        return "NotReadyBrake";
+            case ReasonNotReady::NotReadyThrtl:        return "NotReadyThrtl";
+            case ReasonNotReady::MissingCmdSteer:      return "MissingCmdSteer";
+            case ReasonNotReady::MissingCmdBrake:      return "MissingCmdBrake";
+            case ReasonNotReady::MissingCmdThrtl:      return "MissingCmdThrtl";
+            case ReasonNotReady::NotEnableCmdSteer:    return "NotEnableCmdSteer";
+            case ReasonNotReady::NotEnableCmdBrake:    return "NotEnableCmdBrake";
+            case ReasonNotReady::NotEnableCmdThrtl:    return "NotEnableCmdThrtl";
+            case ReasonNotReady::SystemDisabled:       return "SystemDisabled";
+            case ReasonNotReady::Unknown: default:     return "Unknown";
+        }
+    }
+    static constexpr const char * reasonToString(ReasonDisengage x) {
+        switch (x) {
+            case ReasonDisengage::None:               return "";
+            case ReasonDisengage::SteerCmdDisengage:  return "SteerCmdDisengage";
+            case ReasonDisengage::SteerCmdInvalidCrc: return "SteerCmdInvalidCrc";
+            case ReasonDisengage::SteerCmdInvalidRc:  return "SteerCmdInvalidRc";
+            case ReasonDisengage::SteerCmdTimeout:    return "SteerCmdTimeout";
+            case ReasonDisengage::SteerRptFault:      return "SteerRptFault";
+            case ReasonDisengage::SteerRptOverride:   return "SteerRptOverride";
+            case ReasonDisengage::SteerRptDisengage:  return "SteerRptDisengage";
+            case ReasonDisengage::BrakeCmdDisengage:  return "BrakeCmdDisengage";
+            case ReasonDisengage::BrakeCmdInvalidCrc: return "BrakeCmdInvalidCrc";
+            case ReasonDisengage::BrakeCmdInvalidRc:  return "BrakeCmdInvalidRc";
+            case ReasonDisengage::BrakeCmdTimeout:    return "BrakeCmdTimeout";
+            case ReasonDisengage::BrakeRptFault:      return "BrakeRptFault";
+            case ReasonDisengage::BrakeRptOverride:   return "BrakeRptOverride";
+            case ReasonDisengage::BrakeRptDisengage:  return "BrakeRptDisengage";
+            case ReasonDisengage::ThrtlCmdDisengage:  return "ThrtlCmdDisengage";
+            case ReasonDisengage::ThrtlCmdInvalidCrc: return "ThrtlCmdInvalidCrc";
+            case ReasonDisengage::ThrtlCmdInvalidRc:  return "ThrtlCmdInvalidRc";
+            case ReasonDisengage::ThrtlCmdTimeout:    return "ThrtlCmdTimeout";
+            case ReasonDisengage::ThrtlRptFault:      return "ThrtlRptFault";
+            case ReasonDisengage::ThrtlRptOverride:   return "ThrtlRptOverride";
+            case ReasonDisengage::ThrtlRptDisengage:  return "ThrtlRptDisengage";
+            case ReasonDisengage::GearRptFault:       return "GearRptFault";
+            case ReasonDisengage::GearRptOverride:    return "GearRptOverride";
+            case ReasonDisengage::ExternalBrake:      return "ExternalBrake";
+            case ReasonDisengage::Unknown:  default:  return "Unknown";
+        }
+    }
     uint8_t inhibit :1; // Inhibit control for steer/brake/throttle/gear
     uint8_t validate_cmd_crc_rc :1; // Parameter ValidateCmdCrcRc value
     SystemSyncMode system_sync_mode :3; // Parameter SystemSyncMode value
     uint8_t :3;
     ReasonDisengage reason_disengage :8;
     ReasonNotReady reason_not_ready :8;
-    uint8_t :8;
-    uint8_t :8;
+    uint16_t time_phase :10; // Milliseconds 0-999, 0x3FF for unknown
+    uint8_t :6;
     uint8_t :7;
     uint8_t override :1; // Any steer/brake/throttle/gear override
     uint8_t ready :1; // All steer/brake/throttle ready, and gear not faulted
@@ -1676,13 +1790,34 @@ struct MsgSystemReport {
     void reset() {
         uint8_t save = rc;
         memset(this, 0x00, sizeof(*this));
+        time_phase = UINT16_MAX >> 6;
         rc = save;
+    }
+    void setTimePhaseMs(size_t ms) {
+        time_phase = ms % 1000;
+    }
+    bool timePhaseValid() const {
+        return time_phase != UINT16_MAX >> 6;
+    }
+    size_t timePhaseMs() const {
+        if (timePhaseValid()) {
+            return time_phase;
+        }
+        return SIZE_MAX;
     }
     bool operator==(const MsgSystemReport& _other) const {
         return memcmp(this, &_other, sizeof(*this)) == 0;
     }
     bool operator!=(const MsgSystemReport& _other) const {
         return !(*this == _other);
+    }
+    bool needsUpdate(const MsgSystemReport& previous) const {
+        // Check for changes and ignore signals that always change
+        MsgSystemReport self = *this;
+        self.time_phase = previous.time_phase;
+        self.rc = previous.rc;
+        self.crc = previous.crc;
+        return self != previous;
     }
     void setCrc() {
         static_assert(crc8(ID, MSG_NULL, offsetof(typeof(*this), crc)) != 0x00);
@@ -1700,6 +1835,9 @@ static_assert(8 == sizeof(MsgSystemReport));
 
 struct MsgVehicleVelocity {
     static constexpr uint32_t ID = 0x107;
+    static constexpr size_t PERIOD_MIN =  8;
+    static constexpr size_t PERIOD_MS  = 10;
+    static constexpr size_t PERIOD_MAX = 25;
     static constexpr size_t TIMEOUT_MS = 200;
     enum class DirSrc : uint8_t {
         None = 0,   // Direction unknown
@@ -1763,6 +1901,16 @@ struct MsgVehicleVelocity {
         }
         return NAN;
     }
+    bool velocityZero() const {
+        if (veh_vel_brk == INT16_MIN) {
+            return veh_vel_prpl == 0;
+        }
+        if (veh_vel_prpl == INT16_MIN) {
+            return veh_vel_brk == 0;
+        }
+        return veh_vel_brk  == 0
+            && veh_vel_prpl == 0;
+    }
     void setCrc() {
         static_assert(crc8(ID, MSG_NULL, offsetof(typeof(*this), crc)) != 0x00);
         crc = crc8(ID, this, offsetof(typeof(*this), crc));
@@ -1779,7 +1927,9 @@ static_assert(8 == sizeof(MsgVehicleVelocity));
 
 struct MsgThrtlInfo {
     static constexpr uint32_t ID = 0x109;
-    static constexpr size_t PERIOD_MS = 10;
+    static constexpr size_t PERIOD_MIN =  8;
+    static constexpr size_t PERIOD_MS  = 10;
+    static constexpr size_t PERIOD_MAX = 25;
     static constexpr size_t TIMEOUT_MS = 200;
     enum class OnePedalMode : uint8_t {
         Unknown = 0,
@@ -1821,6 +1971,16 @@ struct MsgThrtlInfo {
         }
         return NAN;
     }
+    uint16_t accelPedalPercentU16() const {
+        if (accelPedalPercentValid()) {
+            constexpr uint16_t MAX = 100 / 0.025;
+            if (accel_pedal_pc < MAX) {
+                return (accel_pedal_pc * UINT16_MAX) / MAX;
+            }
+            return UINT16_MAX;
+        }
+        return 0;
+    }
     void setEngineRpm(float rpm) {
         if (std::isfinite(rpm)) {
             engine_rpm = std::clamp<float>(rpm * 4, 0, UINT16_MAX - 1);
@@ -1853,7 +2013,9 @@ static_assert(8 == sizeof(MsgThrtlInfo));
 
 struct MsgBrakeInfo {
     static constexpr uint32_t ID = 0x10A;
-    static constexpr size_t PERIOD_MS = 10;
+    static constexpr size_t PERIOD_MIN =  8;
+    static constexpr size_t PERIOD_MS  = 10;
+    static constexpr size_t PERIOD_MAX = 25;
     static constexpr size_t TIMEOUT_MS = 200;
     uint16_t brake_torque_pedal :13; // 4 Nm, 0x1FFF for unknown
     Quality brake_pedal_qf :2;
@@ -1861,9 +2023,9 @@ struct MsgBrakeInfo {
     uint16_t brake_torque_request :13; // 4 Nm, 0x1FFF for unknown
     uint8_t abs_active :1;
     uint8_t abs_enabled :1;
-    uint8_t stab_active :1;
+    uint8_t esc_active :1;
     uint16_t brake_torque_actual :13; // 4 Nm, 0x1FFF for unknown
-    uint8_t stab_enabled :1;
+    uint8_t esc_enabled :1;
     uint8_t trac_active :1;
     uint8_t trac_enabled :1;
     uint8_t :6;
@@ -1935,7 +2097,7 @@ struct MsgUlcCmd {
     enum class CmdType : uint8_t {
         None = 0,
         Velocity = 1, // 0.0025 m/s
-        Accel = 2,    // 5e-4 m/s^2
+        Accel = 2,    // 0.0005 m/s^2
     };
     enum class CoastDecel : uint8_t {
         UseBrakes = 0, // Use brakes to slow down
@@ -1947,8 +2109,8 @@ struct MsgUlcCmd {
     uint8_t enable :1;
     uint8_t clear :1;
     uint8_t :2;
-    uint8_t enable_shifting :1;
-    uint8_t shift_from_park :1;
+    uint8_t enable_shift :1;
+    uint8_t enable_shift_park :1;
     CoastDecel coast_decel :1;
     uint8_t :5;
     uint8_t :8;
@@ -1962,10 +2124,10 @@ struct MsgUlcCmd {
         rc = save;
     }
     void setCmdVelocityMps(float velocity_m_s) {
-        cmd = std::clamp<float>(velocity_m_s / 0.0025f, -INT16_MAX, INT16_MAX);
+        cmd = std::clamp<float>(std::round(velocity_m_s / 0.0025f), -INT16_MAX, INT16_MAX);
     }
     void setCmdAccelMps(float accel_m_s) {
-        cmd = std::clamp<float>(accel_m_s / 0.0005f, -INT16_MAX, INT16_MAX);
+        cmd = std::clamp<float>(std::round(accel_m_s / 0.0005f), -INT16_MAX, INT16_MAX);
     }
     float cmdVelocityMps() const {
         return std::clamp(cmd * 0.0025f, -7.0f, 45.0f);
@@ -1990,10 +2152,10 @@ struct MsgUlcCfg {
     static constexpr uint32_t ID = 0x285;
     static constexpr size_t PERIOD_MS = 200;
     static constexpr size_t TIMEOUT_MS = 1000;
-    uint8_t limit_accel;         // 0.025 m/s^2, 0 to 6.375 m/s^2
-    uint8_t limit_decel;         // 0.025 m/s^2, 0 to 6.375 m/s^2
-    uint8_t limit_jerk_throttle; // 0.1 m/s^3, 0 to 25.5 m/s^3
-    uint8_t limit_jerk_brake;    // 0.1 m/s^3, 0 to 25.5 m/s^3
+    uint8_t limit_accel;         // 0.025 m/s^2, 0.3 to 3.0 m/s^2
+    uint8_t limit_decel;         // 0.025 m/s^2, 0.3 to 6.0 m/s^2
+    uint8_t limit_jerk_throttle; // 0.1 m/s^3, 1.0 to 25.5 m/s^3
+    uint8_t limit_jerk_brake;    // 0.1 m/s^3, 1.0 to 25.5 m/s^3
     uint8_t :8;
     uint8_t :8;
     uint8_t :4;
@@ -2012,36 +2174,36 @@ struct MsgUlcCfg {
     }
     void setLimitAccelMps(float accel_m_s2) {
         if (accel_m_s2 < 0 || std::isinf(accel_m_s2)) {
-            limit_accel = UINT8_MAX; // Unlimited
+            limit_accel = UINT8_MAX; // Maximum
         } else if (accel_m_s2 > 0) {
-            limit_accel = std::clamp<float>(std::round(accel_m_s2 * 0.025), 1, UINT8_MAX - 1);
+            limit_accel = std::clamp<float>(std::round(accel_m_s2 * 40), 1, UINT8_MAX - 1);
         } else {
             limit_accel = 0; // Default
         }
     }
     void setLimitDecelMps(float decel_m_s2) {
         if (decel_m_s2 < 0 || std::isinf(decel_m_s2)) {
-            limit_decel = UINT8_MAX; // Unlimited
+            limit_decel = UINT8_MAX; // Maximum
         } else if (decel_m_s2 > 0) {
-            limit_decel = std::clamp<float>(std::round(decel_m_s2 * 0.025), 1, UINT8_MAX - 1);
+            limit_decel = std::clamp<float>(std::round(decel_m_s2 * 40), 1, UINT8_MAX - 1);
         } else {
             limit_decel = 0; // Default
         }
     }
     void setLimitJerkThrottleMps(float jerk_m_s3) {
         if (jerk_m_s3 < 0 || std::isinf(jerk_m_s3)) {
-            limit_jerk_throttle = UINT8_MAX; // Unlimited
+            limit_jerk_throttle = UINT8_MAX; // Maximum
         } else if (jerk_m_s3 > 0) {
-            limit_jerk_throttle = std::clamp<float>(std::round(jerk_m_s3 * 0.1), 1, UINT8_MAX - 1);
+            limit_jerk_throttle = std::clamp<float>(std::round(jerk_m_s3 * 10), 1, UINT8_MAX - 1);
         } else {
             limit_jerk_throttle = 0; // Default
         }
     }
     void setLimitJerkBrakeMps(float jerk_m_s3) {
         if (jerk_m_s3 < 0 || std::isinf(jerk_m_s3)) {
-            limit_jerk_brake = UINT8_MAX; // Unlimited
+            limit_jerk_brake = UINT8_MAX; // Maximum
         } else if (jerk_m_s3 > 0) {
-            limit_jerk_brake = std::clamp<float>(std::round(jerk_m_s3 * 0.1), 1, UINT8_MAX - 1);
+            limit_jerk_brake = std::clamp<float>(std::round(jerk_m_s3 * 10), 1, UINT8_MAX - 1);
         } else {
             limit_jerk_brake = 0; // Default
         }
@@ -2050,28 +2212,28 @@ struct MsgUlcCfg {
         if (limit_accel == 0) {
             return 0; // Default
         } else {
-            return std::clamp<float>(limit_accel * 40, 0.3f, 3.0f); // Unlimited not supported
+            return std::clamp(limit_accel * 0.025f, 0.3f, 3.0f);
         }
     }
     float limitDecelMps() const {
         if (limit_decel == 0) {
             return 0; // Default
         } else {
-            return std::clamp<float>(limit_decel * 40, 0.3f, 6.0f); // Unlimited not supported
+            return std::clamp(limit_decel * 0.025f, 0.3f, 6.0f);
         }
     }
     float limitJerkThrottleMps() const {
         if (limit_jerk_throttle == 0) {
             return 0; // Default
         } else {
-            return std::clamp<float>(limit_jerk_throttle * 10, 1.0f, 25.0f); // Unlimited not supported
+            return std::clamp(limit_jerk_throttle * 0.1f, 1.0f, 25.0f);
         }
     }
     float limitJerkBrakeMps() const {
         if (limit_jerk_brake == 0) {
             return 0; // Default
         } else {
-            return std::clamp<float>(limit_jerk_brake * 10, 1.0f, 25.0f); // Unlimited not supported
+            return std::clamp(limit_jerk_brake * 0.1f, 1.0f, 25.0f);
         }
     }
     void setCrc() {
@@ -2196,9 +2358,9 @@ struct MsgAccel {
     static constexpr size_t TIMEOUT_MS = 200;
     static constexpr int16_t UNKNOWN = INT16_MIN;
     static constexpr int16_t MAX = INT16_MAX;
-    int16_t longitudinal; // 0.01 m/s^2, x
-    int16_t lateral;      // 0.01 m/s^2, y
-    int16_t vertical;     // 0.01 m/s^2, z
+    int16_t x; // 0.01 m/s^2, forward positive, backward negative
+    int16_t y; // 0.01 m/s^2, left positive, right negative
+    int16_t z; // 0.01 m/s^2, up positive, down negative
     uint8_t :6;
     uint8_t rc :2;
     uint8_t crc;
@@ -2207,15 +2369,15 @@ struct MsgAccel {
         memset(this, 0x00, sizeof(*this));
         rc = save;
     }
-    void setLongMps2(float m_s2) { setAccelMps2(longitudinal, m_s2); }
-    void setLatMps2(float m_s2) { setAccelMps2(lateral, m_s2); }
-    void setVertMps2(float m_s2) { setAccelMps2(vertical, m_s2); }
-    bool longValid() const { return accelValid(longitudinal); }
-    bool latValid() const { return accelValid(lateral); }
-    bool vertValid() const { return accelValid(vertical); }
-    float longMps2() const { return accelMps2(longitudinal); }
-    float latMps2() const { return accelMps2(lateral); }
-    float vertMps2() const { return accelMps2(vertical); }
+    void setAccelXMps2(float m_s2) { setAccelMps2(x, m_s2); }
+    void setAccelYMps2(float m_s2) { setAccelMps2(y, m_s2); }
+    void setAccelZMps2(float m_s2) { setAccelMps2(z, m_s2); }
+    bool accelXValid() const { return accelValid(x); }
+    bool accelYValid() const { return accelValid(y); }
+    bool accelZValid() const { return accelValid(z); }
+    float accelXMps2() const { return accelMps2(x); }
+    float accelYMps2() const { return accelMps2(y); }
+    float accelZMps2() const { return accelMps2(z); }
     void setCrc() {
         static_assert(crc8(ID, MSG_NULL, offsetof(typeof(*this), crc)) != 0x00);
         crc = crc8(ID, this, offsetof(typeof(*this), crc));
@@ -2228,19 +2390,19 @@ struct MsgAccel {
         return rc != this->rc;
     }
 private:
-    static void setAccelMps2(int16_t &x, float m_s2) {
+    static void setAccelMps2(int16_t &u, float m_s2) {
         if (std::isfinite(m_s2)) {
-            x = std::clamp<float>(m_s2 * 100, -MAX, MAX);
+            u = std::clamp<float>(m_s2 * 100, -MAX, MAX);
         } else {
-            x = UNKNOWN;
+            u = UNKNOWN;
         }
     }
-    static bool accelValid(const int16_t &x) {
-        return x != UNKNOWN;
+    static bool accelValid(const int16_t &u) {
+        return u != UNKNOWN;
     }
-    static float accelMps2(const int16_t &x) {
-        if (accelValid(x)) {
-            return x * 0.01f;
+    static float accelMps2(const int16_t &u) {
+        if (accelValid(u)) {
+            return u * 0.01f;
         }
         return NAN;
     }
@@ -2253,9 +2415,9 @@ struct MsgGyro {
     static constexpr size_t TIMEOUT_MS = 200;
     static constexpr int16_t UNKNOWN = INT16_MIN;
     static constexpr int16_t MAX = INT16_MAX;
-    int16_t roll;  // 0.0002 rad/s, x
-    int16_t pitch; // 0.0002 rad/s, y
-    int16_t yaw;   // 0.0002 rad/s, z
+    int16_t x; // 0.0002 rad/s, roll, right positive, left negative
+    int16_t y; // 0.0002 rad/s, pitch, down positive, up negative
+    int16_t z; // 0.0002 rad/s, yaw, left positive, right negative
     uint8_t :6;
     uint8_t rc :2;
     uint8_t crc;
@@ -2264,18 +2426,18 @@ struct MsgGyro {
         memset(this, 0x00, sizeof(*this));
         rc = save;
     }
-    void setRollRadS(float rad_s) { setGyroRadS(roll, rad_s); }
-    void setPitchRadS(float rad_s) { setGyroRadS(pitch, rad_s); }
-    void setYawRadS(float rad_s) { setGyroRadS(yaw, rad_s); }
-    bool rollValid() const { return gyroValid(roll); }
-    bool pitchValid() const { return gyroValid(pitch); }
-    bool yawValid() const { return gyroValid(yaw); }
-    float rollRadS() const { return gyroRadS(roll); }
-    float rollDegS() const { return gyroDegS(roll); }
-    float pitchRadS() const { return gyroRadS(pitch); }
-    float pitchDegS() const { return gyroDegS(pitch); }
-    float yawRadS() const { return gyroRadS(yaw); }
-    float yawDegS() const { return gyroDegS(yaw); }
+    void setGyroXRadS(float rad_s) { setGyroRadS(x, rad_s); }
+    void setGyroYRadS(float rad_s) { setGyroRadS(y, rad_s); }
+    void setGyroZRadS(float rad_s) { setGyroRadS(z, rad_s); }
+    bool gyroXValid() const { return gyroValid(x); }
+    bool gyroYValid() const { return gyroValid(y); }
+    bool gyroZValid() const { return gyroValid(z); }
+    float gyroXRadS() const { return gyroRadS(x); }
+    float gyroXDegS() const { return gyroDegS(x); }
+    float gyroYRadS() const { return gyroRadS(y); }
+    float gyroYDegS() const { return gyroDegS(y); }
+    float gyroZRadS() const { return gyroRadS(z); }
+    float gyroZDegS() const { return gyroDegS(z); }
     void setCrc() {
         static_assert(crc8(ID, MSG_NULL, offsetof(typeof(*this), crc)) != 0x00);
         crc = crc8(ID, this, offsetof(typeof(*this), crc));
@@ -2288,24 +2450,24 @@ struct MsgGyro {
         return rc != this->rc;
     }
 private:
-    static void setGyroRadS(int16_t &x, float rad_s) {
+    static void setGyroRadS(int16_t &u, float rad_s) {
         if (std::isfinite(rad_s)) {
-            x = std::clamp<float>(rad_s * 5000, -MAX, MAX);
+            u = std::clamp<float>(rad_s * 5000, -MAX, MAX);
         } else {
-            x = UNKNOWN;
+            u = UNKNOWN;
         }
     }
-    static bool gyroValid(const int16_t &x) {
-        return x != UNKNOWN;
+    static bool gyroValid(const int16_t &u) {
+        return u != UNKNOWN;
     }
-    static float gyroRadS(const int16_t &x) {
-        if (gyroValid(x)) {
-            return x * 0.0002f;
+    static float gyroRadS(const int16_t &u) {
+        if (gyroValid(u)) {
+            return u * 0.0002f;
         }
         return NAN;
     }
-    static float gyroDegS(const int16_t &x) {
-        return gyroRadS(x) * (float)(180 / M_PI);
+    static float gyroDegS(const int16_t &u) {
+        return gyroRadS(u) * (float)(180 / M_PI);
     }
 };
 static_assert(8 == sizeof(MsgGyro));
@@ -2365,6 +2527,7 @@ static_assert(8 == sizeof(MsgWheelSpeed));
 struct MsgWheelPosition {
     static constexpr uint32_t ID = 0x2A5;
     static constexpr size_t PERIOD_MS = 20;
+    static constexpr size_t TIMEOUT_MS = 250;
     int16_t front_left;
     int16_t front_right;
     int16_t rear_left;
@@ -2462,9 +2625,11 @@ struct MsgMiscReport1 {
     uint8_t btn_cc_res_dec :1;
     uint8_t btn_cc_set_inc :1;
     uint8_t btn_cc_set_dec :1;
-    uint8_t btn_cc_gap_inc :1;
-    uint8_t btn_cc_gap_dec :1;
+    uint8_t btn_acc_gap_inc :1;
+    uint8_t btn_acc_gap_dec :1;
+    uint8_t btn_limit_on_off :1;
     uint8_t btn_la_on_off :1;
+    uint8_t btn_apa :1;
     uint8_t btn_media :1;
     uint8_t btn_vol_inc :1;
     uint8_t btn_vol_dec :1;
@@ -2474,7 +2639,7 @@ struct MsgMiscReport1 {
     uint8_t btn_next :1;
     uint8_t btn_call_start :1;
     uint8_t btn_call_end :1;
-    uint8_t :3;
+    uint8_t :1;
     uint8_t rc :2;
     uint8_t crc;
     void reset() {
@@ -2530,6 +2695,13 @@ struct MsgMiscReport2 {
     }
 };
 static_assert(8 == sizeof(MsgMiscReport2));
+
+struct MsgReserved1 {
+    static constexpr uint32_t ID = 0x360;
+    static constexpr size_t TIMEOUT_MS = 500;
+    uint8_t reserved[8];
+};
+static_assert(8 == sizeof(MsgReserved1));
 
 struct MsgTirePressure {
     static constexpr uint32_t ID = 0x380;
@@ -2806,6 +2978,14 @@ struct MsgEcuInfo {
             uint16_t build;
         } version;
         struct {
+            uint8_t count_modified;
+            uint8_t count_configured;
+            uint8_t nvm_blank :1;
+            uint8_t nvm_write_pending :1;
+            uint8_t :6;
+            uint32_t hash;
+        } cfg;
+        struct {
             uint8_t addr0;
             uint8_t addr1;
             uint8_t addr2;
@@ -2814,12 +2994,6 @@ struct MsgEcuInfo {
             uint8_t addr5;
             uint8_t :8;
         } mac;
-        struct {
-            uint8_t :8;
-            uint8_t :8;
-            uint8_t :8;
-            uint32_t hash;
-        } cfg_hash;
         struct {
             uint8_t ready :1;
             uint8_t enabled :1;
@@ -2831,18 +3005,18 @@ struct MsgEcuInfo {
             uint16_t trials_left;
         } license;
         struct {
-            uint8_t ldate0;
-            uint8_t ldate1;
-            uint8_t ldate2;
-            uint8_t ldate3;
-            uint8_t ldate4;
-            uint8_t ldate5;
-            uint8_t ldate6;
+            uint8_t date0;
+            uint8_t date1;
+            uint8_t date2;
+            uint8_t date3;
+            uint8_t date4;
+            uint8_t date5;
+            uint8_t date6;
         } ldate0;
         struct {
-            uint8_t ldate7;
-            uint8_t ldate8;
-            uint8_t ldate9;
+            uint8_t date7;
+            uint8_t date8;
+            uint8_t date9;
             uint8_t :8;
             uint8_t :8;
             uint8_t :8;
@@ -2910,7 +3084,7 @@ struct MsgEcuInfoBOO      : public MsgEcuInfo { static constexpr uint32_t ID = 0
 
 
 // Verify that IDs are unique and in the desired order of priorities (unit test)
-static constexpr std::array<uint32_t, 45> IDS {
+static constexpr std::array<uint32_t, 46> IDS {
     // Primary reports
     MsgSteerReport1::ID,
     MsgBrakeReport1::ID,
@@ -2958,6 +3132,8 @@ static constexpr std::array<uint32_t, 45> IDS {
     MsgBrakeReport3::ID,
     MsgThrtlReport3::ID,
     MsgGearReport3::ID,
+    // Reserved
+    MsgReserved1::ID,
     // Other sensors
     MsgTirePressure::ID,
     // ECU info

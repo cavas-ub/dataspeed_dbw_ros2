@@ -40,8 +40,11 @@ bool degraded
 float32 limit_rate
 float32 limit_value
 
-#
+# Brake available duration and actions
 float32 brake_available_duration
+bool brake_available_full
+bool req_shift_park
+bool req_park_brake
 
 #
 bool external_button

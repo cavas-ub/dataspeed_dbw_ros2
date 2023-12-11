@@ -4,4 +4,4 @@ std_msgs/Header header
 TurnSignal turn_signal
 
 # Parking brake command enumeration
-#ParkingBrakeCmd parking_brake
+PrkBrkCmd parking_brake

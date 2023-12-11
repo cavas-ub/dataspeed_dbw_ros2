@@ -94,9 +94,9 @@ PlatformMap FIRMWARE_LATEST({
   {PlatformVersion(P_FORD_CD5,        M_BOO,   ModuleVersion(0,0,1))},
   {PlatformVersion(P_FORD_CD5,        M_TPEC,  ModuleVersion(0,0,1))},
   {PlatformVersion(P_FORD_CD5,        M_STEER, ModuleVersion(0,0,1))},
-  {PlatformVersion(P_FORD_GE1,        M_TPEC,  ModuleVersion(0,0,1))},
-  {PlatformVersion(P_FORD_GE1,        M_STEER, ModuleVersion(0,0,1))},
-  {PlatformVersion(P_FORD_GE1,        M_SHIFT, ModuleVersion(0,0,1))},
+  {PlatformVersion(P_FORD_GE1,        M_TPEC,  ModuleVersion(2,0,1))},
+  {PlatformVersion(P_FORD_GE1,        M_STEER, ModuleVersion(2,0,1))},
+  {PlatformVersion(P_FORD_GE1,        M_SHIFT, ModuleVersion(2,0,1))},
   {PlatformVersion(P_FORD_P5,         M_TPEC,  ModuleVersion(0,0,1))},
   {PlatformVersion(P_FORD_P5,         M_STEER, ModuleVersion(0,0,1))},
   {PlatformVersion(P_FORD_P5,         M_SHIFT, ModuleVersion(0,0,1))},
@@ -113,10 +113,10 @@ PlatformMap FIRMWARE_LATEST({
   {PlatformVersion(P_FORD_U6,         M_SHIFT, ModuleVersion(0,0,1))},
   {PlatformVersion(P_FORD_U6,         M_ABS,   ModuleVersion(0,0,1))},
   {PlatformVersion(P_FORD_U6,         M_BOO,   ModuleVersion(0,0,1))},
-  {PlatformVersion(P_FORD_V3,         M_TPEC,  ModuleVersion(0,1,0))},
-  {PlatformVersion(P_FORD_V3,         M_STEER, ModuleVersion(0,1,0))},
-  {PlatformVersion(P_FORD_V3,         M_SHIFT, ModuleVersion(0,1,0))},
-  {PlatformVersion(P_FORD_V3,         M_BOO,   ModuleVersion(0,1,0))},
+  {PlatformVersion(P_FORD_V3,         M_TPEC,  ModuleVersion(0,1,2))},
+  {PlatformVersion(P_FORD_V3,         M_STEER, ModuleVersion(0,1,2))},
+  {PlatformVersion(P_FORD_V3,         M_SHIFT, ModuleVersion(0,1,2))},
+  {PlatformVersion(P_FORD_V3,         M_BOO,   ModuleVersion(0,1,2))},
   {PlatformVersion(P_POLARIS_GEM,     M_TPEC,  ModuleVersion(0,0,1))},
   {PlatformVersion(P_POLARIS_GEM,     M_STEER, ModuleVersion(0,0,1))},
   {PlatformVersion(P_POLARIS_GEM,     M_BOO,   ModuleVersion(0,0,1))},
@@ -158,6 +158,7 @@ DbwNode::DbwNode(const rclcpp::NodeOptions &options)
   pub_thrtl_diag_ = create_publisher<ds_dbw_msgs::msg::ThrottleDiagnostics>("throttle/diag", 2);
   pub_gear_rpt_ = create_publisher<ds_dbw_msgs::msg::GearReport>("gear/report", 2);
   pub_gear_diag_ = create_publisher<ds_dbw_msgs::msg::GearDiagnostics>("gear/diag", 2);
+  pub_system_rpt_ = create_publisher<ds_dbw_msgs::msg::SystemReport>("system/report", 2);
   pub_veh_vel_ = create_publisher<ds_dbw_msgs::msg::VehicleVelocity>("vehicle_velocity", 2);
   pub_thrtl_info_ = create_publisher<ds_dbw_msgs::msg::ThrottleInfo>("throttle/info", 2);
   pub_brake_info_ = create_publisher<ds_dbw_msgs::msg::BrakeInfo>("brake/info", 2);
@@ -369,7 +370,10 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
                 out.degraded = msg_brake_rpt_2_.degraded;
                 out.limit_rate = NAN; ///@TODO
                 out.limit_value = NAN; ///@TODO
-                out.brake_available_duration = NAN; ///@TODO
+                out.brake_available_duration = msg_brake_rpt_2_.brkAvailDurSec();
+                out.brake_available_full = msg_brake_rpt_2_.brake_available_full;
+                out.req_shift_park = msg_brake_rpt_2_.req_shift_park;
+                out.req_park_brake = msg_brake_rpt_2_.req_park_brake;
                 out.external_button = msg_brake_rpt_2_.external_button;
                 out.cmd_src.value = (uint8_t)msg_brake_rpt_2_.cmd_src;
               }
@@ -547,6 +551,22 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
           if (msg.validCrc()) {
             if (msg_system_rpt_rc_.valid(msg, msg_can->header.stamp)) {
               warnBadCrcRc(msg.bad_crc, msg.bad_rc, "System");
+              ds_dbw_msgs::msg::SystemReport out;
+              out.header.stamp = msg_can->header.stamp;
+              out.inhibit = msg.inhibit;
+              out.validate_cmd_crc_rc = msg.validate_cmd_crc_rc;
+              out.system_sync_mode = (uint8_t)msg.system_sync_mode;
+              out.reason_disengage = (uint8_t)msg.reason_disengage;
+              out.reason_not_ready = (uint8_t)msg.reason_not_ready;
+              out.reason_disengage_str = MsgSystemReport::reasonToString(msg.reason_disengage);
+              out.reason_not_ready_str = MsgSystemReport::reasonToString(msg.reason_not_ready);
+              out.override = msg.override;
+              out.ready = msg.ready;
+              out.enabled = msg.enabled;
+              out.fault = msg.fault;
+              out.bad_crc = msg.bad_crc;
+              out.bad_rc = msg.bad_rc;
+              pub_system_rpt_->publish(out);
             } else {
               RCLCPP_WARN(get_logger(), "Ignoring system report with repeated rolling counter value");
             }
@@ -619,8 +639,8 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
               out.brake_pedal_qf.value = (uint8_t)msg.brake_pedal_qf;
               out.abs_active = msg.abs_active;
               out.abs_enabled = msg.abs_enabled;
-              out.stab_active = msg.stab_active;
-              out.stab_enabled = msg.stab_enabled;
+              out.esc_active = msg.esc_active;
+              out.esc_enabled = msg.esc_enabled;
               out.trac_active = msg.trac_active;
               out.trac_enabled = msg.trac_enabled;
               pub_brake_info_->publish(out);
@@ -866,6 +886,8 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
       case msg_brake_rpt_2_.ID:
         if (msg_can->dlc == sizeof(msg_brake_rpt_2_)) {
           bool degraded_prev = msg_brake_rpt_2_.degraded;
+          bool req_park_brake_prev = msg_brake_rpt_2_.req_park_brake;
+          bool req_shift_park_prev = msg_brake_rpt_2_.req_shift_park;
           memcpy(&msg_brake_rpt_2_, msg_can->data.data(), sizeof(msg_brake_rpt_2_));
           const auto &msg = msg_brake_rpt_2_;
           if (msg.validCrc()) {
@@ -912,11 +934,17 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
               out.fault_comms_actuator_2 = msg_brake_rpt_3_.fault_comms_actuator_2;
               out.fault_vehicle_speed = msg_brake_rpt_3_.fault_vehicle_speed;
               out.fault_actuator_acc_deny = msg_brake_rpt_3_.fault_actuator_acc_deny;
-              out.fault_actuator_pedal_torque = msg_brake_rpt_3_.fault_actuator_pedal_torque;
+              out.fault_actuator_pedal_sensor = msg_brake_rpt_3_.fault_actuator_pedal_sensor;
               out.fault_actuator_1 = msg_brake_rpt_3_.fault_actuator_1;
               out.fault_actuator_2 = msg_brake_rpt_3_.fault_actuator_2;
               out.fault_calibration = msg_brake_rpt_3_.fault_calibration;
               pub_brake_diag_->publish(out);
+              if (msg.req_park_brake && !req_park_brake_prev) {
+                RCLCPP_INFO(get_logger(), "Brake hold time low, applying parking brake");
+              }
+              if (msg.req_shift_park && !req_shift_park_prev) {
+                RCLCPP_INFO(get_logger(), "Brake hold time depleted, shifting to park");
+              }
               if (msg.degraded) {
                 RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake degraded");
               } else if (degraded_prev) {
@@ -1339,8 +1367,8 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
             if (msg.fault_actuator_acc_deny) {
               RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake fault: ACC deny from actuator");
             }
-            if (msg.fault_actuator_pedal_torque) {
-              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake fault: Unknown pedal torque from actuator");
+            if (msg.fault_actuator_pedal_sensor) {
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake fault: Unknown pedal sensor value from actuator");
             }
             if (msg.fault_actuator_1) {
               RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake fault: Fault in actuator 1");
@@ -1607,11 +1635,15 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
               break; }
             case Mux::CfgHash:
               ecu_info.config_hash = "XXXXXXXX";
-              snprintf(ecu_info.config_hash.data(), ecu_info.config_hash.size() + 1, "%08X", msg.cfg_hash.hash);
-              if (cfg_hash_[module] != msg.cfg_hash.hash) {
-                cfg_hash_[module] = msg.cfg_hash.hash;
-                RCLCPP_INFO(get_logger(), "EcuInfo: %s config hash: %08X", str_m, msg.cfg_hash.hash);
+              snprintf(ecu_info.config_hash.data(), ecu_info.config_hash.size() + 1, "%08X", msg.cfg.hash);
+              if (cfg_hash_[module] != msg.cfg.hash) {
+                cfg_hash_[module] = msg.cfg.hash;
+                RCLCPP_INFO(get_logger(), "EcuInfo: %s config hash: %08X", str_m, msg.cfg.hash);
               }
+              ecu_info.config_count_modified = msg.cfg.count_modified;
+              ecu_info.config_count_configured = msg.cfg.count_configured;
+              ecu_info.config_nvm_blank = msg.cfg.nvm_blank;
+              ecu_info.config_nvm_write_pending = msg.cfg.nvm_write_pending;
               break;
             case Mux::MacAddr: {
               ecu_info.mac_addr = "XX:XX:XX:XX:XX:XX";
@@ -1678,20 +1710,20 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
             case Mux::LicenseDate0: {
               std::string &date = ldate_recv_[module];
               date.clear();
-              date.push_back(msg.ldate0.ldate0);
-              date.push_back(msg.ldate0.ldate1);
-              date.push_back(msg.ldate0.ldate2);
-              date.push_back(msg.ldate0.ldate3);
-              date.push_back(msg.ldate0.ldate4);
-              date.push_back(msg.ldate0.ldate5);
-              date.push_back(msg.ldate0.ldate6);
+              date.push_back(msg.ldate0.date0);
+              date.push_back(msg.ldate0.date1);
+              date.push_back(msg.ldate0.date2);
+              date.push_back(msg.ldate0.date3);
+              date.push_back(msg.ldate0.date4);
+              date.push_back(msg.ldate0.date5);
+              date.push_back(msg.ldate0.date6);
               break; }
             case Mux::LicenseDate1: {
               std::string &date = ldate_recv_[module];
               if (date.size() == 7) {
-                date.push_back(msg.ldate1.ldate7);
-                date.push_back(msg.ldate1.ldate8);
-                date.push_back(msg.ldate1.ldate9);
+                date.push_back(msg.ldate1.date7);
+                date.push_back(msg.ldate1.date8);
+                date.push_back(msg.ldate1.date9);
                 ecu_info.license_date = date;
                 if (ldate_[module] != date) {
                   ldate_[module] = date;
@@ -1793,6 +1825,9 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
       case MsgGearCmdUlc::ID:
         break;
 
+      case MsgReserved1::ID:
+        break;
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
       case 0x400 ... 0x43F: // Power Distribution with iPDS
@@ -1824,17 +1859,25 @@ void DbwNode::recvCanImu(const std::vector<can_msgs::msg::Frame::ConstSharedPtr>
   out.header.stamp = msgs[0]->header.stamp;
   out.header.frame_id = frame_id_;
   out.orientation_covariance[0] = -1; // Orientation not present
-  out.linear_acceleration.x =  msg_accel.longMps2();
-  out.linear_acceleration.y = -msg_accel.latMps2();
-  out.linear_acceleration.z = -msg_accel.vertMps2();
-  out.angular_velocity.x = msg_gyro.rollRadS();
-  out.angular_velocity.y = msg_gyro.pitchDegS();
-  out.angular_velocity.z = msg_gyro.yawRadS();
+  out.linear_acceleration.x = msg_accel.accelXMps2();
+  out.linear_acceleration.y = msg_accel.accelYMps2();
+  out.linear_acceleration.z = msg_accel.accelZMps2();
+  out.angular_velocity.x = msg_gyro.gyroXRadS();
+  out.angular_velocity.y = msg_gyro.gyroYRadS();
+  out.angular_velocity.z = msg_gyro.gyroZRadS();
   pub_imu_->publish(out);
   printSyncDelta(msgs[0], msgs[1], "imu");
 }
 
 void DbwNode::recvCanMisc(const std::vector<can_msgs::msg::Frame::ConstSharedPtr> &msgs) {
+  static_assert(ds_dbw_msgs::msg::TurnSignal::NONE   == (uint8_t)TurnSignal::None);
+  static_assert(ds_dbw_msgs::msg::TurnSignal::LEFT   == (uint8_t)TurnSignal::Left);
+  static_assert(ds_dbw_msgs::msg::TurnSignal::RIGHT  == (uint8_t)TurnSignal::Right);
+  static_assert(ds_dbw_msgs::msg::TurnSignal::HAZARD == (uint8_t)TurnSignal::Hazard);
+  static_assert(ds_dbw_msgs::msg::PrkBrkStat::UNKNOWN    == (uint8_t)MsgMiscReport1::PrkBrkStat::Unknown);
+  static_assert(ds_dbw_msgs::msg::PrkBrkStat::ON         == (uint8_t)MsgMiscReport1::PrkBrkStat::On);
+  static_assert(ds_dbw_msgs::msg::PrkBrkStat::OFF        == (uint8_t)MsgMiscReport1::PrkBrkStat::Off);
+  static_assert(ds_dbw_msgs::msg::PrkBrkStat::TRANSITION == (uint8_t)MsgMiscReport1::PrkBrkStat::Transition);
   assert(msgs.size() == 2);
   assert(msgs[0]->id == MsgMiscReport1::ID);
   assert(msgs[1]->id == MsgMiscReport2::ID);
@@ -1845,7 +1888,7 @@ void DbwNode::recvCanMisc(const std::vector<can_msgs::msg::Frame::ConstSharedPtr
   ds_dbw_msgs::msg::MiscReport out;
   out.header.stamp = msgs[0]->header.stamp;
   out.turn_signal.value = (uint8_t)msg1.turn_signal;
-  ///@TODO: Parking brake
+  out.parking_brake.value = (uint8_t)msg1.parking_brake;
   out.passenger_detect = msg1.pasngr_detect;
   out.passenger_airbag = msg1.pasngr_airbag;
   out.buckle_driver = msg1.buckle_driver;
@@ -1877,9 +1920,11 @@ void DbwNode::recvCanMisc(const std::vector<can_msgs::msg::Frame::ConstSharedPtr
   out.btn_cc_res_dec = msg1.btn_cc_res_dec;
   out.btn_cc_set_inc = msg1.btn_cc_set_inc;
   out.btn_cc_set_dec = msg1.btn_cc_set_dec;
-  out.btn_cc_gap_inc = msg1.btn_cc_gap_inc;
-  out.btn_cc_gap_dec = msg1.btn_cc_gap_dec;
+  out.btn_acc_gap_inc = msg1.btn_acc_gap_inc;
+  out.btn_acc_gap_dec = msg1.btn_acc_gap_dec;
+  out.btn_limit_on_off = msg1.btn_limit_on_off;
   out.btn_la_on_off = msg1.btn_la_on_off;
+  out.btn_apa = msg1.btn_apa;
   out.btn_media = msg1.btn_media;
   out.btn_vol_inc = msg1.btn_vol_inc;
   out.btn_vol_dec = msg1.btn_vol_dec;
@@ -2065,21 +2110,41 @@ void DbwNode::recvGearCmd(const ds_dbw_msgs::msg::GearCmd::ConstSharedPtr msg) {
   static_assert(ds_dbw_msgs::msg::Gear::LOW     == (uint8_t)Gear::Low);
   msg_gear_cmd_.reset();
   if (enabled()) {
-    msg_gear_cmd_.cmd = (Gear)msg->cmd.value;
+    switch (msg->cmd.value) {
+      default:
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1e3, "Unknown gear command: %u", msg->cmd.value);
+        [[fallthrough]];
+      case ds_dbw_msgs::msg::Gear::NONE:    msg_gear_cmd_.cmd = Gear::None;    break;
+      case ds_dbw_msgs::msg::Gear::PARK:    msg_gear_cmd_.cmd = Gear::Park;    break;
+      case ds_dbw_msgs::msg::Gear::REVERSE: msg_gear_cmd_.cmd = Gear::Reverse; break;
+      case ds_dbw_msgs::msg::Gear::NEUTRAL: msg_gear_cmd_.cmd = Gear::Neutral; break;
+      case ds_dbw_msgs::msg::Gear::DRIVE:   msg_gear_cmd_.cmd = Gear::Drive;   break;
+      case ds_dbw_msgs::msg::Gear::LOW:     msg_gear_cmd_.cmd = Gear::Low;     break;
+    }
   }
   msg_gear_cmd_.setCrc();
   pub_can_->publish(FrameFromDbw(msg_gear_cmd_));
 }
 
 void DbwNode::recvMiscCmd(const ds_dbw_msgs::msg::MiscCmd::ConstSharedPtr msg) {
-  static_assert(ds_dbw_msgs::msg::TurnSignal::NONE   == (uint8_t)TurnSignal::None);
-  static_assert(ds_dbw_msgs::msg::TurnSignal::LEFT   == (uint8_t)TurnSignal::Left);
-  static_assert(ds_dbw_msgs::msg::TurnSignal::RIGHT  == (uint8_t)TurnSignal::Right);
-  static_assert(ds_dbw_msgs::msg::TurnSignal::HAZARD == (uint8_t)TurnSignal::Hazard);
   msg_misc_cmd_.reset();
   if (enabled()) {
-    msg_misc_cmd_.turn_signal_cmd = (TurnSignal)msg->turn_signal.value;
-    msg_misc_cmd_.parking_brake_cmd = MsgMiscCmd::PrkBrkCmd::None; ///@TODO
+    switch (msg->turn_signal.value) {
+      default:
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1e3, "Unknown turn signal command: %u", msg->turn_signal.value);
+        [[fallthrough]];
+      case ds_dbw_msgs::msg::TurnSignal::NONE:  msg_misc_cmd_.turn_signal_cmd = TurnSignal::None;  break;
+      case ds_dbw_msgs::msg::TurnSignal::LEFT:  msg_misc_cmd_.turn_signal_cmd = TurnSignal::Left;  break;
+      case ds_dbw_msgs::msg::TurnSignal::RIGHT: msg_misc_cmd_.turn_signal_cmd = TurnSignal::Right; break;
+    }
+    switch (msg->parking_brake.value) {
+      default:
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1e3, "Unknown parking brake command: %u", msg->parking_brake.value);
+        [[fallthrough]];
+      case ds_dbw_msgs::msg::PrkBrkCmd::NONE: msg_misc_cmd_.parking_brake_cmd = MsgMiscCmd::PrkBrkCmd::None; break;
+      case ds_dbw_msgs::msg::PrkBrkCmd::ON:   msg_misc_cmd_.parking_brake_cmd = MsgMiscCmd::PrkBrkCmd::On;   break;
+      case ds_dbw_msgs::msg::PrkBrkCmd::OFF:  msg_misc_cmd_.parking_brake_cmd = MsgMiscCmd::PrkBrkCmd::Off;  break;
+    }
     msg_misc_cmd_.door_select = MsgMiscCmd::DoorSelect::None; ///@TODO
     msg_misc_cmd_.door_cmd = MsgMiscCmd::DoorCmd::None; ///@TODO
   }
@@ -2126,8 +2191,8 @@ void DbwNode::recvUlcCmd(const ds_dbw_msgs::msg::UlcCmd::ConstSharedPtr msg) {
       msg_ulc_cmd_.setCmdAccelMps(msg->cmd);
       break;
   }
-  msg_ulc_cmd_.enable_shifting = msg->enable_shifting;
-  msg_ulc_cmd_.shift_from_park = msg->shift_from_park;
+  msg_ulc_cmd_.enable_shift = msg->enable_shift;
+  msg_ulc_cmd_.enable_shift_park = msg->enable_shift_park;
   msg_ulc_cmd_.coast_decel = msg->coast_decel ? MsgUlcCmd::CoastDecel::NoBrakes : MsgUlcCmd::CoastDecel::UseBrakes;
   if (enabled() && msg->enable) {
     msg_ulc_cmd_.enable = 1;
@@ -2274,12 +2339,12 @@ void DbwNode::warnBadCrcRc(bool bad_crc, bool bad_rc, const char *name) {
 
 void DbwNode::warnRejectGear(uint8_t reject) {
   static_assert((uint8_t)MsgGearReport1::Reject::None            == ds_dbw_msgs::msg::GearReject::NONE);
+  static_assert((uint8_t)MsgGearReport1::Reject::Fault           == ds_dbw_msgs::msg::GearReject::FAULT);
+  static_assert((uint8_t)MsgGearReport1::Reject::Unsupported     == ds_dbw_msgs::msg::GearReject::UNSUPPORTED);
   static_assert((uint8_t)MsgGearReport1::Reject::ShiftInProgress == ds_dbw_msgs::msg::GearReject::SHIFT_IN_PROGRESS);
   static_assert((uint8_t)MsgGearReport1::Reject::Override        == ds_dbw_msgs::msg::GearReject::OVERRIDE);
-  static_assert((uint8_t)MsgGearReport1::Reject::Neutral         == ds_dbw_msgs::msg::GearReject::NEUTRAL);
+  static_assert((uint8_t)MsgGearReport1::Reject::BrakeHold       == ds_dbw_msgs::msg::GearReject::BRAKE_HOLD);
   static_assert((uint8_t)MsgGearReport1::Reject::Vehicle         == ds_dbw_msgs::msg::GearReject::VEHICLE);
-  static_assert((uint8_t)MsgGearReport1::Reject::Unsupported     == ds_dbw_msgs::msg::GearReject::UNSUPPORTED);
-  static_assert((uint8_t)MsgGearReport1::Reject::Fault           == ds_dbw_msgs::msg::GearReject::FAULT);
   if (gear_reject_ != reject) {
     gear_reject_ = reject;
     switch (reject) {
@@ -2289,8 +2354,8 @@ void DbwNode::warnRejectGear(uint8_t reject) {
       case ds_dbw_msgs::msg::GearReject::OVERRIDE:
         RCLCPP_WARN(get_logger(), "Gear shift rejected: Override on brake, throttle, or steering");
         break;
-      case ds_dbw_msgs::msg::GearReject::NEUTRAL:
-        RCLCPP_WARN(get_logger(), "Gear shift rejected: Manually shift to neutral before auto-shift");
+      case ds_dbw_msgs::msg::GearReject::BRAKE_HOLD:
+        RCLCPP_WARN(get_logger(), "Gear shift rejected: Brake hold time depleted, stay in park");
         break;
       case ds_dbw_msgs::msg::GearReject::VEHICLE:
         RCLCPP_WARN(get_logger(), "Gear shift rejected: Rejected by vehicle, try pressing the brakes");
