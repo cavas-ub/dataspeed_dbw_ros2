@@ -2,6 +2,9 @@
 Changelog for package dbw_ford_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.1.4 (2023-12-13)
+------------------
+
 2.1.3 (2023-09-11)
 ------------------
 * Add one-pedal-drive mode status

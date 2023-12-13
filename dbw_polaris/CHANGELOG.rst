@@ -2,6 +2,11 @@
 Changelog for package dbw_polaris
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.1.4 (2023-12-13)
+------------------
+* Fix install script for end-of-life ROS distros
+* Contributors: Kevin Hallenbeck
+
 2.1.3 (2023-09-11)
 ------------------
 

@@ -2,6 +2,13 @@
 Changelog for package dbw_polaris_can
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.1.4 (2023-12-13)
+------------------
+* Remove dataspeed_dbw_gateway package
+  The gateway package took a lot of time and memory to compile.
+  The gateway package converted messages from specific OEMs to generic messages with the subset of common fields. The DBW2 CAN interface is designed to be the same for all OEMs.
+* Contributors: Kevin Hallenbeck
+
 2.1.3 (2023-09-11)
 ------------------
 * Bump firmware versions
