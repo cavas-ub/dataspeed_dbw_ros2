@@ -587,7 +587,7 @@ struct MsgBrakeCmd {
         if (rate_inc == 0) {
             return 0; // Default
         } else if (rate_inc < UINT8_MAX) {
-            return std::max<float>(rate_inc * 10, 100); // Minimum of 100 bar/s
+            return std::max<float>(rate_inc * 10, 20); // Minimum of 20 bar/s
         } else {
             return INFINITY; // Unlimited
         }
@@ -596,7 +596,7 @@ struct MsgBrakeCmd {
         if (rate_dec == 0) {
             return 0; // Default
         } else if (rate_dec < UINT8_MAX) {
-            return std::max<float>(rate_dec * 10, 100); // Minimum of 100 bar/s
+            return std::max<float>(rate_dec * 10, 20); // Minimum of 20 bar/s
         } else {
             return INFINITY; // Unlimited
         }
@@ -605,7 +605,7 @@ struct MsgBrakeCmd {
         if (rate_inc == 0) {
             return 0; // Default
         } else if (rate_inc < UINT8_MAX) {
-            return std::max<float>(rate_inc * 1e3f, 10e3f); // Minimum of 10 kNm/s
+            return std::max<float>(rate_inc * 1e3f, 2e3f); // Minimum of 2 kNm/s
         } else {
             return INFINITY; // Unlimited
         }
@@ -614,7 +614,7 @@ struct MsgBrakeCmd {
         if (rate_dec == 0) {
             return 0; // Default
         } else if (rate_dec < UINT8_MAX) {
-            return std::max<float>(rate_dec * 1e3f, 10e3f); // Minimum of 10 kNm/s
+            return std::max<float>(rate_dec * 1e3f, 2e3f); // Minimum of 2 kNm/s
         } else {
             return INFINITY; // Unlimited
         }
@@ -623,7 +623,7 @@ struct MsgBrakeCmd {
         if (rate_inc == 0) {
             return 0; // Default
         } else if (rate_inc < UINT8_MAX) {
-            return std::max(rate_inc, (uint8_t)10); // Minimum of 10 m/s^3
+            return std::max(rate_inc, (uint8_t)5); // Minimum of 5 m/s^3
         } else {
             return INFINITY; // Unlimited
         }
@@ -632,7 +632,7 @@ struct MsgBrakeCmd {
         if (rate_dec == 0) {
             return 0; // Default
         } else if (rate_dec < UINT8_MAX) {
-            return std::max(rate_dec, (uint8_t)10); // Minimum of 10 m/s^3
+            return std::max(rate_dec, (uint8_t)5); // Minimum of 5 m/s^3
         } else {
             return INFINITY; // Unlimited
         }
@@ -641,7 +641,7 @@ struct MsgBrakeCmd {
         if (rate_inc == 0) {
             return 0; // Default
         } else if (rate_inc < UINT8_MAX) {
-            return std::max<float>(rate_inc * 10, 100); // Minimum of 100 %/s
+            return std::max<float>(rate_inc * 10, 50); // Minimum of 50 %/s
         } else {
             return INFINITY; // Unlimited
         }
@@ -650,7 +650,7 @@ struct MsgBrakeCmd {
         if (rate_dec == 0) {
             return 0; // Default
         } else if (rate_dec < UINT8_MAX) {
-            return std::max<float>(rate_dec * 10, 100); // Minimum of 100 %/s
+            return std::max<float>(rate_dec * 10, 50); // Minimum of 50 %/s
         } else {
             return INFINITY; // Unlimited
         }
