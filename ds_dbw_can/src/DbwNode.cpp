@@ -87,6 +87,7 @@ static can_msgs::msg::Frame FrameFromDbw(const T &msg) {
 
 // Latest firmware versions
 PlatformMap FIRMWARE_LATEST({
+#if 0
   {PlatformVersion(P_FORD_CD4,        M_BPEC,  ModuleVersion(0,0,1))},
   {PlatformVersion(P_FORD_CD4,        M_TPEC,  ModuleVersion(0,0,1))},
   {PlatformVersion(P_FORD_CD4,        M_STEER, ModuleVersion(0,0,1))},
@@ -94,17 +95,21 @@ PlatformMap FIRMWARE_LATEST({
   {PlatformVersion(P_FORD_CD5,        M_BOO,   ModuleVersion(0,0,1))},
   {PlatformVersion(P_FORD_CD5,        M_TPEC,  ModuleVersion(0,0,1))},
   {PlatformVersion(P_FORD_CD5,        M_STEER, ModuleVersion(0,0,1))},
+#endif
   {PlatformVersion(P_FORD_GE1,        M_TPEC,  ModuleVersion(2,0,1))},
   {PlatformVersion(P_FORD_GE1,        M_STEER, ModuleVersion(2,0,1))},
   {PlatformVersion(P_FORD_GE1,        M_SHIFT, ModuleVersion(2,0,1))},
+#if 0
   {PlatformVersion(P_FORD_P5,         M_TPEC,  ModuleVersion(0,0,1))},
   {PlatformVersion(P_FORD_P5,         M_STEER, ModuleVersion(0,0,1))},
   {PlatformVersion(P_FORD_P5,         M_SHIFT, ModuleVersion(0,0,1))},
   {PlatformVersion(P_FORD_P5,         M_ABS,   ModuleVersion(0,0,1))},
   {PlatformVersion(P_FORD_P5,         M_BOO,   ModuleVersion(0,0,1))},
+#endif
   {PlatformVersion(P_FORD_P702,       M_TPEC,  ModuleVersion(0,0,1))},
   {PlatformVersion(P_FORD_P702,       M_STEER, ModuleVersion(0,0,1))},
   {PlatformVersion(P_FORD_P702,       M_SHIFT, ModuleVersion(0,0,1))},
+#if 0
   {PlatformVersion(P_FORD_T6,         M_TPEC,  ModuleVersion(0,0,1))},
   {PlatformVersion(P_FORD_T6,         M_STEER, ModuleVersion(0,0,1))},
   {PlatformVersion(P_FORD_T6,         M_SHIFT, ModuleVersion(0,0,1))},
@@ -113,10 +118,12 @@ PlatformMap FIRMWARE_LATEST({
   {PlatformVersion(P_FORD_U6,         M_SHIFT, ModuleVersion(0,0,1))},
   {PlatformVersion(P_FORD_U6,         M_ABS,   ModuleVersion(0,0,1))},
   {PlatformVersion(P_FORD_U6,         M_BOO,   ModuleVersion(0,0,1))},
+#endif
   {PlatformVersion(P_FORD_V3,         M_TPEC,  ModuleVersion(0,1,3))},
   {PlatformVersion(P_FORD_V3,         M_STEER, ModuleVersion(0,1,3))},
   {PlatformVersion(P_FORD_V3,         M_SHIFT, ModuleVersion(0,1,3))},
   {PlatformVersion(P_FORD_V3,         M_BOO,   ModuleVersion(0,1,3))},
+#if 0
   {PlatformVersion(P_POLARIS_GEM,     M_TPEC,  ModuleVersion(0,0,1))},
   {PlatformVersion(P_POLARIS_GEM,     M_STEER, ModuleVersion(0,0,1))},
   {PlatformVersion(P_POLARIS_GEM,     M_BOO,   ModuleVersion(0,0,1))},
@@ -125,6 +132,7 @@ PlatformMap FIRMWARE_LATEST({
   {PlatformVersion(P_POLARIS_RZR,     M_BOO,   ModuleVersion(0,0,1))},
   {PlatformVersion(P_POLARIS_RANGER,  M_TPEC,  ModuleVersion(0,0,1))},
   {PlatformVersion(P_POLARIS_RANGER,  M_STEER, ModuleVersion(0,0,1))},
+#endif
 });
 
 using std::placeholders::_1;
@@ -1831,6 +1839,12 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
       case 0x400 ... 0x43F: // Power Distribution with iPDS
+        break;
+      case 0x060 ... 0x07F: // Legacy Drive-By-Wire (DBW1)
+        if (warn_unknown_) {
+          RCLCPP_WARN_ONCE_ID(get_logger(), msg_can->id, "Received unsupported CAN ID %03X from legacy drive-by-wire system (DBW1)"
+                                                         "\nUse the legacy dbw_fca/dbw_ford/dbw_polaris packages instead", msg_can->id);
+        }
         break;
 #pragma GCC diagnostic pop
 

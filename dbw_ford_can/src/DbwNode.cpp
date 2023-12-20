@@ -923,6 +923,16 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg) {
             "DBW system: Another node on the CAN bus is commanding the vehicle!!! Subsystem: Turn Signals. Id: 0x%03X",
             ID_MISC_CMD);
         break;
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+      case 0x100 ... 0x103: // DBW2 steer/brake/throttle/gear report
+      case 0x6C0 ... 0x6C5: // DBW2 ECU info for each module
+#pragma GCC diagnostic pop
+          DS_WARN_ONCE_ID(get_logger(), msg->id,
+              "Received unsupported CAN ID %03X from next-generation drive-by-wire system (DBW2)"
+              "\nUse the ds_dbw_can package instead", msg->id);
+        break;
     }
   }
 #if 0
