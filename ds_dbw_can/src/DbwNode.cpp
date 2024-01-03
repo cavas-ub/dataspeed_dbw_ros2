@@ -96,9 +96,9 @@ PlatformMap FIRMWARE_LATEST({
   {PlatformVersion(P_FORD_CD5,        M_TPEC,  ModuleVersion(0,0,1))},
   {PlatformVersion(P_FORD_CD5,        M_STEER, ModuleVersion(0,0,1))},
 #endif
-  {PlatformVersion(P_FORD_GE1,        M_TPEC,  ModuleVersion(2,0,1))},
-  {PlatformVersion(P_FORD_GE1,        M_STEER, ModuleVersion(2,0,1))},
-  {PlatformVersion(P_FORD_GE1,        M_SHIFT, ModuleVersion(2,0,1))},
+  {PlatformVersion(P_FORD_GE1,        M_TPEC,  ModuleVersion(2,0,2))},
+  {PlatformVersion(P_FORD_GE1,        M_STEER, ModuleVersion(2,0,2))},
+  {PlatformVersion(P_FORD_GE1,        M_SHIFT, ModuleVersion(2,0,2))},
 #if 0
   {PlatformVersion(P_FORD_P5,         M_TPEC,  ModuleVersion(0,0,1))},
   {PlatformVersion(P_FORD_P5,         M_STEER, ModuleVersion(0,0,1))},
@@ -106,9 +106,9 @@ PlatformMap FIRMWARE_LATEST({
   {PlatformVersion(P_FORD_P5,         M_ABS,   ModuleVersion(0,0,1))},
   {PlatformVersion(P_FORD_P5,         M_BOO,   ModuleVersion(0,0,1))},
 #endif
-  {PlatformVersion(P_FORD_P702,       M_TPEC,  ModuleVersion(0,0,1))},
-  {PlatformVersion(P_FORD_P702,       M_STEER, ModuleVersion(0,0,1))},
-  {PlatformVersion(P_FORD_P702,       M_SHIFT, ModuleVersion(0,0,1))},
+  {PlatformVersion(P_FORD_P702,       M_TPEC,  ModuleVersion(2,0,0))},
+  {PlatformVersion(P_FORD_P702,       M_STEER, ModuleVersion(2,0,0))},
+  {PlatformVersion(P_FORD_P702,       M_SHIFT, ModuleVersion(2,0,0))},
 #if 0
   {PlatformVersion(P_FORD_T6,         M_TPEC,  ModuleVersion(0,0,1))},
   {PlatformVersion(P_FORD_T6,         M_STEER, ModuleVersion(0,0,1))},
@@ -119,10 +119,10 @@ PlatformMap FIRMWARE_LATEST({
   {PlatformVersion(P_FORD_U6,         M_ABS,   ModuleVersion(0,0,1))},
   {PlatformVersion(P_FORD_U6,         M_BOO,   ModuleVersion(0,0,1))},
 #endif
-  {PlatformVersion(P_FORD_V3,         M_TPEC,  ModuleVersion(0,1,3))},
-  {PlatformVersion(P_FORD_V3,         M_STEER, ModuleVersion(0,1,3))},
-  {PlatformVersion(P_FORD_V3,         M_SHIFT, ModuleVersion(0,1,3))},
-  {PlatformVersion(P_FORD_V3,         M_BOO,   ModuleVersion(0,1,3))},
+  {PlatformVersion(P_FORD_V3,         M_TPEC,  ModuleVersion(0,1,4))},
+  {PlatformVersion(P_FORD_V3,         M_STEER, ModuleVersion(0,1,4))},
+  {PlatformVersion(P_FORD_V3,         M_SHIFT, ModuleVersion(0,1,4))},
+  {PlatformVersion(P_FORD_V3,         M_BOO,   ModuleVersion(0,1,4))},
 #if 0
   {PlatformVersion(P_POLARIS_GEM,     M_TPEC,  ModuleVersion(0,0,1))},
   {PlatformVersion(P_POLARIS_GEM,     M_STEER, ModuleVersion(0,0,1))},

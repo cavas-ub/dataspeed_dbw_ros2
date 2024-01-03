@@ -33,6 +33,10 @@
  *********************************************************************/
 #pragma once
 
+#if __cplusplus < 201703L
+#warning "The C++ standard must be C++17 or newer"
+#endif
+
 #include <stdint.h>
 #include <stddef.h> // size_t
 #include <stdbool.h> // bool
@@ -1836,8 +1840,8 @@ static_assert(8 == sizeof(MsgSystemReport));
 struct MsgVehicleVelocity {
     static constexpr uint32_t ID = 0x107;
     static constexpr size_t PERIOD_MIN =  8;
-    static constexpr size_t PERIOD_MS  = 10;
-    static constexpr size_t PERIOD_MAX = 25;
+    static constexpr size_t PERIOD_MS  = 20;
+    static constexpr size_t PERIOD_MAX = 50;
     static constexpr size_t TIMEOUT_MS = 200;
     enum class DirSrc : uint8_t {
         None = 0,   // Direction unknown
@@ -2356,8 +2360,6 @@ struct MsgAccel {
     static constexpr uint32_t ID = 0x2A0;
     static constexpr size_t PERIOD_MS = 10;
     static constexpr size_t TIMEOUT_MS = 200;
-    static constexpr int16_t UNKNOWN = INT16_MIN;
-    static constexpr int16_t MAX = INT16_MAX;
     int16_t x; // 0.01 m/s^2, forward positive, backward negative
     int16_t y; // 0.01 m/s^2, left positive, right negative
     int16_t z; // 0.01 m/s^2, up positive, down negative
@@ -2390,6 +2392,8 @@ struct MsgAccel {
         return rc != this->rc;
     }
 private:
+    static constexpr int16_t UNKNOWN = INT16_MIN;
+    static constexpr int16_t MAX = INT16_MAX;
     static void setAccelMps2(int16_t &u, float m_s2) {
         if (std::isfinite(m_s2)) {
             u = std::clamp<float>(m_s2 * 100, -MAX, MAX);
@@ -2413,8 +2417,6 @@ struct MsgGyro {
     static constexpr uint32_t ID = 0x2A1;
     static constexpr size_t PERIOD_MS = 10;
     static constexpr size_t TIMEOUT_MS = 200;
-    static constexpr int16_t UNKNOWN = INT16_MIN;
-    static constexpr int16_t MAX = INT16_MAX;
     int16_t x; // 0.0002 rad/s, roll, right positive, left negative
     int16_t y; // 0.0002 rad/s, pitch, down positive, up negative
     int16_t z; // 0.0002 rad/s, yaw, left positive, right negative
@@ -2450,6 +2452,8 @@ struct MsgGyro {
         return rc != this->rc;
     }
 private:
+    static constexpr int16_t UNKNOWN = INT16_MIN;
+    static constexpr int16_t MAX = INT16_MAX;
     static void setGyroRadS(int16_t &u, float rad_s) {
         if (std::isfinite(rad_s)) {
             u = std::clamp<float>(rad_s * 5000, -MAX, MAX);
