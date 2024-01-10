@@ -1834,6 +1834,7 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
         break;
 
       case MsgReserved1::ID:
+      case MsgReserved2::ID:
         break;
 
 #pragma GCC diagnostic push

@@ -2706,6 +2706,12 @@ struct MsgReserved1 {
     uint8_t reserved[8];
 };
 static_assert(8 == sizeof(MsgReserved1));
+struct MsgReserved2 {
+    static constexpr uint32_t ID = 0x361;
+    static constexpr size_t TIMEOUT_MS = 5000;
+    uint8_t reserved[8];
+};
+static_assert(8 == sizeof(MsgReserved2));
 
 struct MsgTirePressure {
     static constexpr uint32_t ID = 0x380;
@@ -3088,7 +3094,7 @@ struct MsgEcuInfoBOO      : public MsgEcuInfo { static constexpr uint32_t ID = 0
 
 
 // Verify that IDs are unique and in the desired order of priorities (unit test)
-static constexpr std::array<uint32_t, 46> IDS {
+static constexpr std::array<uint32_t, 47> IDS {
     // Primary reports
     MsgSteerReport1::ID,
     MsgBrakeReport1::ID,
@@ -3138,6 +3144,7 @@ static constexpr std::array<uint32_t, 46> IDS {
     MsgGearReport3::ID,
     // Reserved
     MsgReserved1::ID,
+    MsgReserved2::ID,
     // Other sensors
     MsgTirePressure::ID,
     // ECU info
