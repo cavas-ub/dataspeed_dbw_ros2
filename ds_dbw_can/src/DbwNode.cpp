@@ -182,52 +182,19 @@ DbwNode::DbwNode(const rclcpp::NodeOptions &options)
   publishDbwEnabled();
 
   // Setup Subscribers
-  {
-    auto bind = std::bind(&DbwNode::recvEnable, this, _1);
-    sub_enable_ = create_subscription<std_msgs::msg::Empty>("enable", 10, bind);
-  }
-  {
-    auto bind = std::bind(&DbwNode::recvDisable, this, _1);
-    sub_disable_ = create_subscription<std_msgs::msg::Empty>("disable", 10, bind);
-  }
-  {
-    auto bind = std::bind(&DbwNode::recvCAN, this, _1);
-    sub_can_ = create_subscription<can_msgs::msg::Frame>("can_rx", 100, bind);
-  }
-  {
-    auto bind = std::bind(&DbwNode::recvSteeringCmd, this, _1);
-    sub_steer_ = create_subscription<ds_dbw_msgs::msg::SteeringCmd>("steering/cmd", 1, bind);
-  }
-  {
-    auto bind = std::bind(&DbwNode::recvBrakeCmd, this, _1);
-    sub_brake_ = create_subscription<ds_dbw_msgs::msg::BrakeCmd>("brake/cmd", 1, bind);
-  }
-  {
-    auto bind = std::bind(&DbwNode::recvThrottleCmd, this, _1);
-    sub_thrtl_ = create_subscription<ds_dbw_msgs::msg::ThrottleCmd>("throttle/cmd", 1, bind);
-  }
-  {
-    auto bind = std::bind(&DbwNode::recvGearCmd, this, _1);
-    sub_gear_ = create_subscription<ds_dbw_msgs::msg::GearCmd>("gear/cmd", 1, bind);
-  }
-  {
-    auto bind = std::bind(&DbwNode::recvMiscCmd, this, _1);
-    sub_misc_ = create_subscription<ds_dbw_msgs::msg::MiscCmd>("misc/cmd", 1, bind);
-  }
-  {
-    auto bind = std::bind(&DbwNode::recvUlcCmd, this, _1);
-    sub_ulc_ = create_subscription<ds_dbw_msgs::msg::UlcCmd>("ulc/cmd", 1, bind);
-  }
-  {
-    auto bind = std::bind(&DbwNode::recvSteeringCalibrate, this, _1);
-    sub_calibrate_steering_ = create_subscription<std_msgs::msg::Empty>("steering/calibrate", 1, bind);
-  }
+  sub_enable_ = create_subscription<std_msgs::msg::Empty>("enable", 10, std::bind(&DbwNode::recvEnable, this, _1));
+  sub_disable_ = create_subscription<std_msgs::msg::Empty>("disable", 10, std::bind(&DbwNode::recvDisable, this, _1));
+  sub_can_ = create_subscription<can_msgs::msg::Frame>("can_rx", 100, std::bind(&DbwNode::recvCAN, this, _1));
+  sub_steer_ = create_subscription<ds_dbw_msgs::msg::SteeringCmd>("steering/cmd", 1, std::bind(&DbwNode::recvSteeringCmd, this, _1));
+  sub_brake_ = create_subscription<ds_dbw_msgs::msg::BrakeCmd>("brake/cmd", 1, std::bind(&DbwNode::recvBrakeCmd, this, _1));
+  sub_thrtl_ = create_subscription<ds_dbw_msgs::msg::ThrottleCmd>("throttle/cmd", 1, std::bind(&DbwNode::recvThrottleCmd, this, _1));
+  sub_gear_ = create_subscription<ds_dbw_msgs::msg::GearCmd>("gear/cmd", 1, std::bind(&DbwNode::recvGearCmd, this, _1));
+  sub_misc_ = create_subscription<ds_dbw_msgs::msg::MiscCmd>("misc/cmd", 1, std::bind(&DbwNode::recvMiscCmd, this, _1));
+  sub_ulc_ = create_subscription<ds_dbw_msgs::msg::UlcCmd>("ulc/cmd", 1, std::bind(&DbwNode::recvUlcCmd, this, _1));
+  sub_calibrate_steering_ = create_subscription<std_msgs::msg::Empty>("steering/calibrate", 1, std::bind(&DbwNode::recvSteeringCalibrate, this, _1));
 
   // Setup Timer
-  {
-    auto bind = std::bind(&DbwNode::timerCallback, this);
-    timer_ = create_wall_timer(std::chrono::milliseconds(50), bind);
-  }
+  timer_ = create_wall_timer(std::chrono::milliseconds(50), std::bind(&DbwNode::timerCallback, this));
 }
 
 void DbwNode::recvEnable(const std_msgs::msg::Empty::ConstSharedPtr) {
@@ -1597,7 +1564,7 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
       case MsgEcuInfoBOO::ID:
         if (msg_can->dlc >= sizeof(MsgEcuInfo)) {
           using Mux = MsgEcuInfo::Mux;
-          auto &ecu_info = ecu_info_[msg_can->id];
+          auto &ecu_info = ecu_info_.msg[msg_can->id];
           MsgEcuInfo msg;
           memcpy(&msg, msg_can->data.data(), sizeof(msg));
           Module module = M_MODULE_MAX;
@@ -1644,8 +1611,8 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
             case Mux::CfgHash:
               ecu_info.config_hash = "XXXXXXXX";
               snprintf(ecu_info.config_hash.data(), ecu_info.config_hash.size() + 1, "%08X", msg.cfg.hash);
-              if (cfg_hash_[module] != msg.cfg.hash) {
-                cfg_hash_[module] = msg.cfg.hash;
+              if (ecu_info_.cfg_hash[module] != msg.cfg.hash) {
+                ecu_info_.cfg_hash[module] = msg.cfg.hash;
                 RCLCPP_INFO(get_logger(), "EcuInfo: %s config hash: %08X", str_m, msg.cfg.hash);
               }
               ecu_info.config_count_modified = msg.cfg.count_modified;
@@ -1665,8 +1632,8 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
               mac[3] = msg.mac.addr3;
               mac[4] = msg.mac.addr4;
               mac[5] = msg.mac.addr5;
-              if (mac_[module] != mac) {
-                mac_[module] = mac;
+              if (ecu_info_.mac[module] != mac) {
+                ecu_info_.mac[module] = mac;
                 RCLCPP_INFO(get_logger(), "EcuInfo: %s MAC: %02X:%02X:%02X:%02X:%02X:%02X",
                             str_m, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
               }
@@ -1716,7 +1683,7 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
                 }
               break; }
             case Mux::LicenseDate0: {
-              std::string &date = ldate_recv_[module];
+              std::string &date = ecu_info_.ldate_recv[module];
               date.clear();
               date.push_back(msg.ldate0.date0);
               date.push_back(msg.ldate0.date1);
@@ -1727,20 +1694,20 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
               date.push_back(msg.ldate0.date6);
               break; }
             case Mux::LicenseDate1: {
-              std::string &date = ldate_recv_[module];
+              std::string &date = ecu_info_.ldate_recv[module];
               if (date.size() == 7) {
                 date.push_back(msg.ldate1.date7);
                 date.push_back(msg.ldate1.date8);
                 date.push_back(msg.ldate1.date9);
                 ecu_info.license_date = date;
-                if (ldate_[module] != date) {
-                  ldate_[module] = date;
+                if (ecu_info_.ldate[module] != date) {
+                  ecu_info_.ldate[module] = date;
                   RCLCPP_INFO(get_logger(), "EcuInfo: %s license date: %s", str_m, date.c_str());
                 }
               }
               break; }
             case Mux::BuildDate0: {
-              std::string &date = bdate_recv_[module];
+              std::string &date = ecu_info_.bdate_recv[module];
               date.clear();
               date.push_back(msg.bdate0.date0);
               date.push_back(msg.bdate0.date1);
@@ -1751,7 +1718,7 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
               date.push_back(msg.bdate0.date6);
               break; }
             case Mux::BuildDate1: {
-              std::string &date = bdate_recv_[module];
+              std::string &date = ecu_info_.bdate_recv[module];
               if (date.size() == 7) {
                 date.push_back(msg.bdate0.date0);
                 date.push_back(msg.bdate0.date1);
@@ -1769,44 +1736,44 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
                   ecu_info.header.stamp = msg_can->header.stamp;
                   pub_ecu_info_->publish(ecu_info);
                 }
-                if (bdate_[module] != date) {
-                  bdate_[module] = date;
+                if (ecu_info_.bdate[module] != date) {
+                  ecu_info_.bdate[module] = date;
                   RCLCPP_INFO(get_logger(), "EcuInfo: %s firmware build date: %s", str_m, date.c_str());
                 }
               }
               break; }
             case Mux::VIN0:
-              vin_recv_.clear();
-              vin_recv_.push_back(msg.vin0.vin00);
-              vin_recv_.push_back(msg.vin0.vin01);
-              vin_recv_.push_back(msg.vin0.vin02);
-              vin_recv_.push_back(msg.vin0.vin03);
-              vin_recv_.push_back(msg.vin0.vin04);
-              vin_recv_.push_back(msg.vin0.vin05);
-              vin_recv_.push_back(msg.vin0.vin06);
+              ecu_info_.vin_recv.clear();
+              ecu_info_.vin_recv.push_back(msg.vin0.vin00);
+              ecu_info_.vin_recv.push_back(msg.vin0.vin01);
+              ecu_info_.vin_recv.push_back(msg.vin0.vin02);
+              ecu_info_.vin_recv.push_back(msg.vin0.vin03);
+              ecu_info_.vin_recv.push_back(msg.vin0.vin04);
+              ecu_info_.vin_recv.push_back(msg.vin0.vin05);
+              ecu_info_.vin_recv.push_back(msg.vin0.vin06);
               break;
             case Mux::VIN1:
-              if (vin_recv_.size() == 7) {
-                vin_recv_.push_back(msg.vin1.vin07);
-                vin_recv_.push_back(msg.vin1.vin08);
-                vin_recv_.push_back(msg.vin1.vin09);
-                vin_recv_.push_back(msg.vin1.vin10);
-                vin_recv_.push_back(msg.vin1.vin11);
-                vin_recv_.push_back(msg.vin1.vin12);
-                vin_recv_.push_back(msg.vin1.vin13);
+              if (ecu_info_.vin_recv.size() == 7) {
+                ecu_info_.vin_recv.push_back(msg.vin1.vin07);
+                ecu_info_.vin_recv.push_back(msg.vin1.vin08);
+                ecu_info_.vin_recv.push_back(msg.vin1.vin09);
+                ecu_info_.vin_recv.push_back(msg.vin1.vin10);
+                ecu_info_.vin_recv.push_back(msg.vin1.vin11);
+                ecu_info_.vin_recv.push_back(msg.vin1.vin12);
+                ecu_info_.vin_recv.push_back(msg.vin1.vin13);
               }
               break;
             case Mux::VIN2:
-              if (vin_recv_.size() == 14) {
-                vin_recv_.push_back(msg.vin2.vin14);
-                vin_recv_.push_back(msg.vin2.vin15);
-                vin_recv_.push_back(msg.vin2.vin16);
-                if (vin_ != vin_recv_) {
-                  vin_ = vin_recv_;
-                  RCLCPP_INFO(get_logger(), "VIN: %s", vin_.c_str());
+              if (ecu_info_.vin_recv.size() == 14) {
+                ecu_info_.vin_recv.push_back(msg.vin2.vin14);
+                ecu_info_.vin_recv.push_back(msg.vin2.vin15);
+                ecu_info_.vin_recv.push_back(msg.vin2.vin16);
+                if (ecu_info_.vin != ecu_info_.vin_recv) {
+                  ecu_info_.vin = ecu_info_.vin_recv;
+                  RCLCPP_INFO(get_logger(), "VIN: %s", ecu_info_.vin.c_str());
                 }
                 std_msgs::msg::String msg;
-                msg.data = vin_;
+                msg.data = ecu_info_.vin;
                 pub_vin_->publish(msg);
               }
               break;

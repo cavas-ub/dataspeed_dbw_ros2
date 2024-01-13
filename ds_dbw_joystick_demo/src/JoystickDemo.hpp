@@ -170,7 +170,7 @@ private:
   }
 
   // Variables
-  struct JoystickDataStruct {
+  struct {
     rclcpp::Time stamp;
     float brake_joy = 0;
     float throttle_joy = 0;

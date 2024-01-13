@@ -137,44 +137,17 @@ DbwNode::DbwNode(const rclcpp::NodeOptions &options)
   publishDbwEnabled();
 
   // Setup Subscribers
-  {
-    auto bind = std::bind(&DbwNode::recvEnable, this, _1);
-    sub_enable_ = create_subscription<std_msgs::msg::Empty>("enable", 10, bind);
-  }
-  {
-    auto bind = std::bind(&DbwNode::recvDisable, this, _1);
-    sub_disable_ = create_subscription<std_msgs::msg::Empty>("disable", 10, bind);
-  }
-  {
-    auto bind = std::bind(&DbwNode::recvCAN, this, _1);
-    sub_can_ = create_subscription<can_msgs::msg::Frame>("can_rx", 100, bind);
-  }
-  {
-    auto bind = std::bind(&DbwNode::recvBrakeCmd, this, _1);
-    sub_brake_ = create_subscription<dbw_polaris_msgs::msg::BrakeCmd>("brake_cmd", 1, bind);
-  }
-  {
-    auto bind = std::bind(&DbwNode::recvThrottleCmd, this, _1);
-    sub_throttle_ = create_subscription<dbw_polaris_msgs::msg::ThrottleCmd>("throttle_cmd", 1, bind);
-  }
-  {
-    auto bind = std::bind(&DbwNode::recvSteeringCmd, this, _1);
-    sub_steering_ = create_subscription<dbw_polaris_msgs::msg::SteeringCmd>("steering_cmd", 1, bind);
-  }
-  {
-    auto bind = std::bind(&DbwNode::recvGearCmd, this, _1);
-    sub_gear_ = create_subscription<dbw_polaris_msgs::msg::GearCmd>("gear_cmd", 1, bind);
-  }
-  {
-    auto bind = std::bind(&DbwNode::recvCalibrateSteering, this, _1);
-    sub_calibrate_steering_ = create_subscription<std_msgs::msg::Empty>("calibrate_steering", 1, bind);
-  }
+  sub_enable_ = create_subscription<std_msgs::msg::Empty>("enable", 10, std::bind(&DbwNode::recvEnable, this, _1));
+  sub_disable_ = create_subscription<std_msgs::msg::Empty>("disable", 10, std::bind(&DbwNode::recvDisable, this, _1));
+  sub_can_ = create_subscription<can_msgs::msg::Frame>("can_rx", 100, std::bind(&DbwNode::recvCAN, this, _1));
+  sub_brake_ = create_subscription<dbw_polaris_msgs::msg::BrakeCmd>("brake_cmd", 1, std::bind(&DbwNode::recvBrakeCmd, this, _1));
+  sub_throttle_ = create_subscription<dbw_polaris_msgs::msg::ThrottleCmd>("throttle_cmd", 1, std::bind(&DbwNode::recvThrottleCmd, this, _1));
+  sub_steering_ = create_subscription<dbw_polaris_msgs::msg::SteeringCmd>("steering_cmd", 1, std::bind(&DbwNode::recvSteeringCmd, this, _1));
+  sub_gear_ = create_subscription<dbw_polaris_msgs::msg::GearCmd>("gear_cmd", 1, std::bind(&DbwNode::recvGearCmd, this, _1));
+  sub_calibrate_steering_ = create_subscription<std_msgs::msg::Empty>("calibrate_steering", 1, std::bind(&DbwNode::recvCalibrateSteering, this, _1));
 
   // Setup Timer
-  {
-    auto bind = std::bind(&DbwNode::timerCallback, this);
-    timer_ = create_wall_timer(std::chrono::milliseconds(50), bind);
-  }
+  timer_ = create_wall_timer(std::chrono::milliseconds(50), std::bind(&DbwNode::timerCallback, this));
 }
 
 void DbwNode::recvEnable(const std_msgs::msg::Empty::ConstSharedPtr) {

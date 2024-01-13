@@ -289,15 +289,17 @@ private:
   #endif
 
   // ECU Info
-  std::map<uint16_t, ds_dbw_msgs::msg::EcuInfo> ecu_info_;
-  std::map<uint8_t, uint32_t> cfg_hash_;
-  std::map<uint8_t, std::array<uint8_t,6>> mac_;
-  std::map<uint8_t, std::string> ldate_; // License date
-  std::map<uint8_t, std::string> ldate_recv_;
-  std::map<uint8_t, std::string> bdate_; // Build date
-  std::map<uint8_t, std::string> bdate_recv_;
-  std::string vin_;
-  std::string vin_recv_;
+  struct {
+    std::map<uint16_t, ds_dbw_msgs::msg::EcuInfo> msg;
+    std::map<uint8_t, uint32_t> cfg_hash;
+    std::map<uint8_t, std::array<uint8_t,6>> mac;
+    std::map<uint8_t, std::string> ldate; // License date
+    std::map<uint8_t, std::string> ldate_recv;
+    std::map<uint8_t, std::string> bdate; // Build date
+    std::map<uint8_t, std::string> bdate_recv;
+    std::string vin;
+    std::string vin_recv;
+  } ecu_info_;
 
   // Firmware Versions
   ds_dbw_can::PlatformMap firmware_;
