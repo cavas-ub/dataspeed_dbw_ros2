@@ -36,4 +36,5 @@ bool fault_vehicle_speed
 bool fault_actuator
 bool fault_actuator_torque_sensor
 bool fault_actuator_config
+bool fault_param_limits
 bool fault_calibration

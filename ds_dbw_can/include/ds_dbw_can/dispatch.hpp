@@ -403,8 +403,8 @@ struct MsgSteerReport2 {
     uint8_t :1;
     uint8_t :8;
     uint8_t :8;
-    uint8_t limit_rate :8; // 4 deg/s, 255 for no limit
-    uint16_t limit_value :10; // 1 deg, 1023 for no limit
+    uint8_t limit_rate :8; // 4 deg/s, 255=unlimited
+    uint16_t limit_value :10; // 1 deg, 1023=unlimited
     uint8_t :1;
     CmdSrc cmd_src :3;
     uint8_t rc :2;
@@ -413,6 +413,32 @@ struct MsgSteerReport2 {
         uint8_t save = rc;
         memset(this, 0x00, sizeof(*this));
         rc = save;
+    }
+    void setLimitRateDegS(float deg_s) {
+        if (std::isfinite(deg_s)) {
+            limit_rate = std::clamp<float>(std::round(std::abs(deg_s / 4)), 0, 0xFE);
+        } else {
+            limit_rate = 0xFF; // Unlimited
+        }
+    }
+    float getLimitRateDegS() {
+        if (limit_rate != 0xFF) {
+            return limit_rate * 4;
+        }
+        return INFINITY; // Unlimited
+    }
+    void setLimitValueDeg(float deg) {
+        if (std::isfinite(deg)) {
+            limit_value = std::clamp<float>(std::round(std::abs(deg)), 0, 0x3FE);
+        } else {
+            limit_value = 0x3FF; // Unlimited
+        }
+    }
+    float getLimitValueDeg() {
+        if (limit_value != 0x3FF) {
+            return limit_value;
+        }
+        return INFINITY; // Unlimited
     }
     void setCrc() {
         static_assert(crc8(ID, MSG_NULL, offsetof(typeof(*this), crc)) != 0x00);
@@ -460,7 +486,8 @@ struct MsgSteerReport3 {
     uint8_t :7;
     uint8_t fault_actuator_torque_sensor :1;
     uint8_t fault_actuator_config :1;
-    uint8_t :5;
+    uint8_t :4;
+    uint8_t fault_param_limits :1;
     uint8_t fault_calibration :1;
     uint8_t crc;
     void reset() {
@@ -476,6 +503,13 @@ struct MsgSteerReport3 {
     }
 };
 static_assert(8 == sizeof(MsgSteerReport3));
+struct MsgSteerLimitHash {
+    static constexpr uint32_t ID = 0x330;
+    static constexpr size_t PERIOD_MS = 5000;
+    static constexpr size_t TIMEOUT_MS = 17500;
+    uint32_t hash;
+};
+static_assert(4 == sizeof(MsgSteerLimitHash));
 
 struct MsgBrakeCmd {
     static constexpr size_t TIMEOUT_MS = 100;
@@ -953,8 +987,8 @@ struct MsgBrakeReport2 {
     uint8_t :1;
     uint8_t :1;
     uint8_t :8;
-    uint8_t :8;
-    uint8_t :5;
+    uint16_t limit_value :10; // 0.2 bar or 0.02 m/s^2, 1023=unlimited
+    uint8_t :3;
     uint8_t req_park_brake :1;
     uint8_t req_shift_park :1;
     uint8_t brake_available_full :1;
@@ -969,11 +1003,37 @@ struct MsgBrakeReport2 {
         memset(this, 0x00, sizeof(*this));
         rc = save;
     }
+    void setLimitValuePressureBar(float bar) {
+        if (std::isfinite(bar)) {
+            limit_value = std::clamp<float>(std::round(std::abs(bar) / 0.2f), 0, 0x3FE);
+        } else {
+            limit_value = 0x3FF; // Unlimited
+        }
+    }
+    float getLimitValuePressureBar() {
+        if (limit_value != 0x3FF) {
+            return limit_value * 0.2f;
+        }
+        return INFINITY; // Unlimited
+    }
+    void setLimitValueDecelMs2x1k(int16_t ms2_x1k) {
+        if (ms2_x1k != INT16_MIN) {
+            limit_value = std::clamp<uint16_t>(std::abs(ms2_x1k) / 20, 0, 0x3FE);
+        } else {
+            limit_value = 0x3FF; // Unlimited
+        }
+    }
+    float getLimitValueDecelMs2x1k() {
+        if (limit_value != 0x3FF) {
+            return limit_value * 0.02f;
+        }
+        return INFINITY; // Unlimited
+    }
     void setBrkAvailDurSec(uint16_t seconds, uint16_t seconds_full, uint16_t offset = 0) {
         brake_available_mux = BrkAvlMode::SecondsX2;
         if (seconds != UINT16_MAX) {
             if (seconds > offset) {
-                brake_available_duration = std::min<uint16_t>((seconds - offset) >> 1, UINT8_MAX - 1);
+                brake_available_duration = std::min<uint16_t>((seconds - offset) / 2, UINT8_MAX - 1);
             } else {
                 brake_available_duration = 0;
             }
@@ -1001,7 +1061,7 @@ struct MsgBrakeReport2 {
             return INFINITY;
         } else if (brkAvailDurValid()) {
             if (brake_available_mux == BrkAvlMode::SecondsX2) {
-                return brake_available_duration << 1;
+                return brake_available_duration * 2;
             }
             if (brake_available_mux == BrkAvlMode::MillisecondsX100) {
                 return brake_available_duration * 0.1f;
@@ -1066,7 +1126,8 @@ struct MsgBrakeReport3 {
     uint8_t :3;
     uint8_t fault_actuator_1 :1;
     uint8_t fault_actuator_2 :1;
-    uint8_t :7;
+    uint8_t :6;
+    uint8_t fault_param_limits :1;
     uint8_t fault_calibration :1;
     uint8_t crc;
     void reset() {
@@ -1082,6 +1143,13 @@ struct MsgBrakeReport3 {
     }
 };
 static_assert(8 == sizeof(MsgBrakeReport3));
+struct MsgBrakeLimitHash {
+    static constexpr uint32_t ID = 0x331;
+    static constexpr size_t PERIOD_MS = 5000;
+    static constexpr size_t TIMEOUT_MS = 17500;
+    uint32_t hash;
+};
+static_assert(4 == sizeof(MsgBrakeLimitHash));
 
 struct MsgThrtlCmd {
     static constexpr size_t TIMEOUT_MS = 100;
@@ -1326,15 +1394,30 @@ struct MsgThrtlReport2 {
     uint8_t :8;
     uint8_t :8;
     uint8_t :8;
-    uint8_t :8;
-    uint8_t :3;
+    uint16_t limit_value :10; // 0.1 %, 1023=unlimited
+    uint8_t :1;
     CmdSrc cmd_src :3;
     uint8_t rc :2;
     uint8_t crc;
     void reset() {
         uint8_t save = rc;
         memset(this, 0x00, sizeof(*this));
+        limit_value = 0x3FF;
         rc = save;
+    }
+    void setLimitValuePcU16(uint16_t pc, bool valid) {
+        if (valid) {
+            constexpr uint16_t MAX = 100 / 0.1;
+            limit_value = (pc  * MAX) / UINT16_MAX;
+        } else {
+            limit_value = 0x3FF; // Unlimited
+        }
+    }
+    float getLimitValuePc() {
+        if (limit_value != 0x3FF) {
+            return limit_value * 0.1f;
+        }
+        return INFINITY; // Unlimited
     }
     void setCrc() {
         static_assert(crc8(ID, MSG_NULL, offsetof(typeof(*this), crc)) != 0x00);
@@ -1378,7 +1461,8 @@ struct MsgThrtlReport3 {
     uint8_t fault_aped_sensor_mismatch :1;
     uint8_t :4;
     uint8_t :8;
-    uint8_t :7;
+    uint8_t :6;
+    uint8_t fault_param_limits :1;
     uint8_t fault_calibration :1;
     uint8_t crc;
     void reset() {
@@ -1394,6 +1478,13 @@ struct MsgThrtlReport3 {
     }
 };
 static_assert(8 == sizeof(MsgThrtlReport3));
+struct MsgThrtlLimitHash {
+    static constexpr uint32_t ID = 0x332;
+    static constexpr size_t PERIOD_MS = 5000;
+    static constexpr size_t TIMEOUT_MS = 17500;
+    uint32_t hash;
+};
+static_assert(4 == sizeof(MsgThrtlLimitHash));
 
 struct MsgGearCmd {
     static constexpr size_t TIMEOUT_MS = 0; // Event based
@@ -1871,17 +1962,20 @@ struct MsgVehicleVelocity {
     bool velocityBrkValid() const {
         return veh_vel_brk != INT16_MIN;
     }
+    int16_t velocityBrkKphx100() const {
+        return veh_vel_brk;
+    }
     float velocityBrkKph() const {
         if (velocityBrkValid()) {
             return veh_vel_brk * 0.01f;
         }
-        return NAN;
+        return NAN; // Invalid
     }
     float velocityBrkMps() const {
         if (velocityBrkValid()) {
             return veh_vel_brk * (0.01f / 3.6f);
         }
-        return NAN;
+        return NAN; // Invalid
     }
     void setVelocityPrplKph(float kph) {
         if (std::isfinite(kph)) {
@@ -1893,17 +1987,51 @@ struct MsgVehicleVelocity {
     bool velocityPrplValid() const {
         return veh_vel_prpl != INT16_MIN;
     }
+    int16_t velocityPrplKphx100() const {
+        return veh_vel_prpl;
+    }
     float velocityPrplKph() const {
         if (velocityPrplValid()) {
             return veh_vel_prpl * 0.01f;
         }
-        return NAN;
+        return NAN; // Invalid
     }
     float velocityPrplMps() const {
         if (velocityPrplValid()) {
             return veh_vel_prpl * (0.01f / 3.6f);
         }
-        return NAN;
+        return NAN; // Invalid
+    }
+    bool velocityValid() const {
+        return veh_vel_brk  != INT16_MIN
+            || veh_vel_prpl != INT16_MIN;
+    }
+    int16_t velocityKphx100() const {
+        if (veh_vel_brk != INT16_MIN) {
+            return veh_vel_brk;
+        }
+        if (veh_vel_prpl != INT16_MIN) {
+            return veh_vel_prpl;
+        }
+        return INT16_MIN; // Invalid
+    }
+    float velocityKph() const {
+        if (veh_vel_brk != INT16_MIN) {
+            return veh_vel_brk * 0.01f;
+        }
+        if (veh_vel_prpl != INT16_MIN) {
+            return veh_vel_prpl * 0.01f;
+        }
+        return NAN; // Invalid
+    }
+    float velocityMps() const {
+        if (veh_vel_brk != INT16_MIN) {
+            return veh_vel_brk * (0.01f / 3.6f);
+        }
+        if (veh_vel_prpl != INT16_MIN) {
+            return veh_vel_prpl * (0.01f / 3.6f);
+        }
+        return NAN; // Invalid
     }
     bool velocityZero() const {
         if (veh_vel_brk == INT16_MIN) {
@@ -1914,6 +2042,18 @@ struct MsgVehicleVelocity {
         }
         return veh_vel_brk  == 0
             && veh_vel_prpl == 0;
+    }
+    uint16_t speedKphx100() const {
+        if (veh_vel_brk != INT16_MIN) {
+            return std::abs(veh_vel_brk);
+        }
+        if (veh_vel_prpl != INT16_MIN) {
+            return std::abs(veh_vel_prpl);
+        }
+        return UINT16_MAX; // Invalid
+    }
+    float speedKph() const {
+        return std::abs(velocityKph());
     }
     void setCrc() {
         static_assert(crc8(ID, MSG_NULL, offsetof(typeof(*this), crc)) != 0x00);
@@ -3094,7 +3234,7 @@ struct MsgEcuInfoBOO      : public MsgEcuInfo { static constexpr uint32_t ID = 0
 
 
 // Verify that IDs are unique and in the desired order of priorities (unit test)
-static constexpr std::array<uint32_t, 47> IDS {
+static constexpr std::array<uint32_t, 50> IDS {
     // Primary reports
     MsgSteerReport1::ID,
     MsgBrakeReport1::ID,
@@ -3142,6 +3282,9 @@ static constexpr std::array<uint32_t, 47> IDS {
     MsgBrakeReport3::ID,
     MsgThrtlReport3::ID,
     MsgGearReport3::ID,
+    MsgSteerLimitHash::ID,
+    MsgBrakeLimitHash::ID,
+    MsgThrtlLimitHash::ID,
     // Reserved
     MsgReserved1::ID,
     MsgReserved2::ID,

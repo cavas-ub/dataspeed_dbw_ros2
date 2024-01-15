@@ -245,11 +245,15 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
               out.timeout = msg.timeout;
               out.bad_crc = msg.bad_crc;
               out.bad_rc = msg.bad_rc;
-              if (true) { ///@TODO
+              if (true) { ///@TODO: msg_steer_rpt_2_.valid()
                 out.degraded = msg_steer_rpt_2_.degraded;
-                out.limit_rate = NAN; ///@TODO
-                out.limit_value = NAN; ///@TODO
+                out.limit_rate = msg_steer_rpt_2_.getLimitRateDegS();
+                out.limit_value = msg_steer_rpt_2_.getLimitValueDeg();
                 out.cmd_src.value = (uint8_t)msg_steer_rpt_2_.cmd_src;
+              } else {
+                out.limit_rate = NAN;
+                out.limit_value = NAN;
+                out.cmd_src.value = (uint8_t)CmdSrc::User;
               }
               pub_steer_rpt_->publish(out);
               if (msg.fault) {
@@ -341,16 +345,25 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
               out.timeout = msg.timeout;
               out.bad_crc = msg.bad_crc;
               out.bad_rc = msg.bad_rc;
-              if (true) { ///@TODO
+              if (true) { ///@TODO: msg_brake_rpt_2_.valid()
                 out.degraded = msg_brake_rpt_2_.degraded;
-                out.limit_rate = NAN; ///@TODO
-                out.limit_value = NAN; ///@TODO
+                using Mode = MsgBrakeReport2::BrkAvlMode;
+                switch (msg_brake_rpt_2_.brake_available_mux) {
+                  default:                     out.limit_value = NAN; break;
+                  case Mode::Unlimited:        out.limit_value = INFINITY; break;
+                  case Mode::SecondsX2:        out.limit_value = msg_brake_rpt_2_.getLimitValuePressureBar(); break;
+                  case Mode::MillisecondsX100: out.limit_value = msg_brake_rpt_2_.getLimitValueDecelMs2x1k(); break;
+                }
                 out.brake_available_duration = msg_brake_rpt_2_.brkAvailDurSec();
                 out.brake_available_full = msg_brake_rpt_2_.brake_available_full;
                 out.req_shift_park = msg_brake_rpt_2_.req_shift_park;
                 out.req_park_brake = msg_brake_rpt_2_.req_park_brake;
                 out.external_button = msg_brake_rpt_2_.external_button;
                 out.cmd_src.value = (uint8_t)msg_brake_rpt_2_.cmd_src;
+              } else {
+                out.limit_value = NAN;
+                out.brake_available_duration = NAN;
+                out.cmd_src.value = (uint8_t)CmdSrc::User;
               }
               pub_brake_rpt_->publish(out);
               if (msg.fault) {
@@ -421,11 +434,13 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
               out.timeout = msg.timeout;
               out.bad_crc = msg.bad_crc;
               out.bad_rc = msg.bad_rc;
-              if (true) { ///@TODO
+              if (true) { ///@TODO: msg_thrtl_rpt_2_.valid()
                 out.degraded = msg_thrtl_rpt_2_.degraded;
-                out.limit_rate = NAN; ///@TODO
-                out.limit_value = NAN; ///@TODO
+                out.limit_value = msg_thrtl_rpt_2_.getLimitValuePc();
                 out.cmd_src.value = (uint8_t)msg_thrtl_rpt_2_.cmd_src;
+              } else {
+                out.limit_value = NAN;
+                out.cmd_src.value = (uint8_t)CmdSrc::User;
               }
               pub_thrtl_rpt_->publish(out);
               if (msg.fault) {
@@ -483,9 +498,11 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
               out.override_other = msg.override_other;
               out.fault = msg.fault;
               out.bad_crc = msg.bad_crc;
-              if (true) { ///@TODO
+              if (true) { ///@TODO: msg_gear_rpt_2_.valid()
                 out.degraded = msg_gear_rpt_2_.degraded;
                 out.cmd_src.value = (uint8_t)msg_gear_rpt_2_.cmd_src;
+              } else {
+                out.cmd_src.value = (uint8_t)CmdSrc::User;
               }
               pub_gear_rpt_->publish(out);
               if (msg.fault) {
@@ -810,6 +827,7 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
               out.fault_vehicle_speed = msg_steer_rpt_3_.fault_vehicle_speed;
               out.fault_actuator_torque_sensor = msg_steer_rpt_3_.fault_actuator_torque_sensor;
               out.fault_actuator_config = msg_steer_rpt_3_.fault_actuator_config;
+              out.fault_param_limits = msg_steer_rpt_3_.fault_param_limits;
               out.fault_calibration = msg_steer_rpt_3_.fault_calibration;
               pub_steer_diag_->publish(out);
               if (msg.degraded) {
@@ -912,6 +930,7 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
               out.fault_actuator_pedal_sensor = msg_brake_rpt_3_.fault_actuator_pedal_sensor;
               out.fault_actuator_1 = msg_brake_rpt_3_.fault_actuator_1;
               out.fault_actuator_2 = msg_brake_rpt_3_.fault_actuator_2;
+              out.fault_param_limits = msg_brake_rpt_3_.fault_param_limits;
               out.fault_calibration = msg_brake_rpt_3_.fault_calibration;
               pub_brake_diag_->publish(out);
               if (msg.req_park_brake && !req_park_brake_prev) {
@@ -1005,6 +1024,7 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
               out.fault_aped_sensor_1 = msg_thrtl_rpt_3_.fault_aped_sensor_1;
               out.fault_aped_sensor_2 = msg_thrtl_rpt_3_.fault_aped_sensor_2;
               out.fault_aped_sensor_mismatch = msg_thrtl_rpt_3_.fault_aped_sensor_mismatch;
+              out.fault_param_limits = msg_thrtl_rpt_3_.fault_param_limits;
               out.fault_calibration = msg_thrtl_rpt_3_.fault_calibration;
               pub_thrtl_diag_->publish(out);
               if (msg.degraded) {
@@ -1219,6 +1239,9 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
               RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering fault: Unsupported actuator configuration"
                                    ", Contact support@dataspeedinc.com if not resolved in a few minutes");
             }
+            if (msg.fault_param_limits) {
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Steering fault: Invalid limit parameters");
+            }
             if (msg.fault_calibration) {
               const char *txt = "Steering calibration fault";
               if (firmware_.get(P_FORD_CD4,  M_STEER).valid()
@@ -1351,6 +1374,9 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
             if (msg.fault_actuator_2) {
               RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake fault: Fault in actuator 2");
             }
+            if (msg.fault_param_limits) {
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake fault: Invalid limit parameters");
+            }
             if (msg.fault_calibration) {
               RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Brake fault: Calibration");
             }
@@ -1423,6 +1449,9 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
             }
             if (msg.fault_aped_sensor_mismatch) {
               RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle fault: Accelerator pedal position sensor dual channel mismatch");
+            }
+            if (msg.fault_param_limits) {
+              RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle fault: Invalid limit parameters");
             }
             if (msg.fault_calibration) {
               RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10e3, "Throttle fault: Calibration");
@@ -1553,6 +1582,37 @@ void DbwNode::recvCAN(const can_msgs::msg::Frame::ConstSharedPtr msg_can) {
           pub_tire_pressures_->publish(out);
         } else {
           RCLCPP_WARN(get_logger(), "Ignoring tire pressure report with invalid size of %u", msg_can->dlc);
+        }
+        break;
+
+      case MsgSteerLimitHash::ID:
+        if (msg_can->dlc >= sizeof(MsgSteerLimitHash)) {
+          MsgSteerLimitHash msg;
+          memcpy(&msg, msg_can->data.data(), sizeof(msg));
+          if (limit_hash_.steer != msg.hash) {
+            limit_hash_.steer = msg.hash;
+            RCLCPP_INFO(get_logger(), "Steer limit hash: %08X", msg.hash);
+          }
+        }
+        break;
+      case MsgBrakeLimitHash::ID:
+        if (msg_can->dlc >= sizeof(MsgBrakeLimitHash)) {
+          MsgBrakeLimitHash msg;
+          memcpy(&msg, msg_can->data.data(), sizeof(msg));
+          if (limit_hash_.brake != msg.hash) {
+            limit_hash_.brake = msg.hash;
+            RCLCPP_INFO(get_logger(), "Brake limit hash: %08X", msg.hash);
+          }
+        }
+        break;
+      case MsgThrtlLimitHash::ID:
+        if (msg_can->dlc >= sizeof(MsgThrtlLimitHash)) {
+          MsgThrtlLimitHash msg;
+          memcpy(&msg, msg_can->data.data(), sizeof(msg));
+          if (limit_hash_.thrtl != msg.hash) {
+            limit_hash_.thrtl = msg.hash;
+            RCLCPP_INFO(get_logger(), "Throttle limit hash: %08X", msg.hash);
+          }
         }
         break;
 

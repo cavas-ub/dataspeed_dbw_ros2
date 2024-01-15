@@ -34,4 +34,5 @@ bool fault_sensor
 bool fault_aped_sensor_1
 bool fault_aped_sensor_2
 bool fault_aped_sensor_mismatch
+bool fault_param_limits
 bool fault_calibration

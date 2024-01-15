@@ -47,4 +47,5 @@ bool fault_actuator_acc_deny
 bool fault_actuator_pedal_sensor
 bool fault_actuator_1
 bool fault_actuator_2
+bool fault_param_limits
 bool fault_calibration

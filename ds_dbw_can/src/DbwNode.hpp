@@ -288,6 +288,13 @@ private:
   };
   #endif
 
+  // Limit hashes
+  struct {
+    uint32_t steer = 0;
+    uint32_t brake = 0;
+    uint32_t thrtl = 0;
+  } limit_hash_;
+
   // ECU Info
   struct {
     std::map<uint16_t, ds_dbw_msgs::msg::EcuInfo> msg;

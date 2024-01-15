@@ -27,9 +27,9 @@ bool bad_rc # Repeated rolling counter on most recent command
 # Degradation of any kind
 bool degraded
 
-# Rate limits
-float32 limit_rate
-float32 limit_value
+# Calculated limit vs vehicle speed
+float32 limit_rate  # deg/s
+float32 limit_value # deg
 
 # Command source
 CmdSrc cmd_src
