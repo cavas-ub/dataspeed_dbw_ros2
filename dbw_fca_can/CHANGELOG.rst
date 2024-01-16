@@ -2,6 +2,11 @@
 Changelog for package dbw_fca_can
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.1.6 (2024-01-16)
+------------------
+* Refactor
+* Contributors: Kevin Hallenbeck
+
 2.1.5 (2024-01-03)
 ------------------
 * Warn when the incorrect DBW1/DBW2 package is used at runtime and suggest the correct package
